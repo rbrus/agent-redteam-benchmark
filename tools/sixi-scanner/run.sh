@@ -2,6 +2,9 @@
 # sixi-scanner against the benchmark gateway.  Usage: tools/sixi-scanner/run.sh <run_dir> [--smoke]
 #   SIXI_SCANNER_BIN   path to the sixi-scanner binary (default: sixi-scanner on PATH)
 #   SIXI_LABEL         gateway label (default sixi-scanner; lets a second build run as e.g. sixi-scanner-next)
+#   SIXI_PHASE_A_ONLY  1 = skip the adaptive phase (Phase B)
+# Writes $RUN_DIR/$LABEL/native/phases.txt: one row per phase with its exit code, report size and
+# the signal that killed it, so an interrupted run is visible instead of reading as "0 attempts".
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 RUN_DIR="${1:?run_dir}"; SMOKE="${2:-}"
@@ -18,14 +21,41 @@ TARGET="$GW/t/$LABEL/chat"
 CTX=(); [ -n "${SIXI_CONTEXT:-}" ] && CTX=(--context "$SIXI_CONTEXT")
 "$BIN" version > "$OUT/version.txt" 2>&1 || true
 date -u +%FT%TZ > "$OUT/started_at"
+: > "$OUT/phases.txt"
+
+# Run one phase.  The scanner writes its report to stdout, so a phase that dies before the final
+# JSON serialisation leaves a zero-byte file — which used to be swallowed by `|| true` and reported
+# as a clean run with 0 attempts.  Record the real exit status (and the killing signal) instead, so
+# an interrupted or OOM-killed phase can never masquerade as "the target resisted everything".
+phase() { # phase <name> <output> <command...>
+  local name="$1" out="$2"; shift 2
+  local rc=0
+  "$@" > "$out" 2> "$OUT/$name.log" || rc=$?
+  local note="ok"
+  if [ "$rc" -ge 128 ]; then
+    local sig=$((rc - 128)); note="KILLED by signal $sig (SIG$(kill -l "$sig" 2>/dev/null || echo "?"))"
+  elif [ "$rc" -ne 0 ]; then
+    note="FAILED exit $rc"
+  elif [ ! -s "$out" ]; then
+    note="FAILED empty report, exit 0"
+  fi
+  printf '%s\t%s\t%s\t%s\n' "$name" "$rc" "$(stat -c %s "$out" 2>/dev/null || echo 0)" "$note" >> "$OUT/phases.txt"
+  if [ "$rc" -ne 0 ] || [ ! -s "$out" ]; then
+    echo "sixi-scanner [$LABEL]: phase '$name' did not produce a report — $note (see $OUT/$name.log)" >&2
+  fi
+}
+
 if [ "$SMOKE" = "--smoke" ]; then
-  "$BIN" scan --target "$TARGET" --agent --agent-name data_exfiltration --attempts 1 --fail-on none \
-    --format json > "$OUT/flat.json" 2> "$OUT/flat.log" || true
+  phase smoke "$OUT/flat.json" "$BIN" scan --target "$TARGET" --agent --agent-name data_exfiltration \
+    --attempts 1 --fail-on none --format json
 else
   # Phase A: the whole technique library, each payload rewritten by the attacker model, 2 attempts.
-  "$BIN" scan --target "$TARGET" "${CTX[@]}" --attempts 2 --fail-on none --format json > "$OUT/flat.json" 2> "$OUT/flat.log" || true
-  # Phase B: the multi-turn adaptive agents, up to 10 turns per technique.
-  "$BIN" scan --target "$TARGET" "${CTX[@]}" --adaptive --turns 10 --fail-on none --format json > "$OUT/adaptive.json" 2> "$OUT/adaptive.log" || true
+  phase flat "$OUT/flat.json" "$BIN" scan --target "$TARGET" "${CTX[@]}" --attempts 2 --fail-on none --format json
+  if [ "${SIXI_PHASE_A_ONLY:-0}" != "1" ]; then
+    # Phase B: the multi-turn adaptive agents, up to 10 turns per technique.
+    phase adaptive "$OUT/adaptive.json" "$BIN" scan --target "$TARGET" "${CTX[@]}" --adaptive --turns 10 \
+      --fail-on none --format json
+  fi
 fi
 date -u +%FT%TZ > "$OUT/finished_at"
 python3 tools/sixi-scanner/parse_results.py "$RUN_DIR" "$LABEL"

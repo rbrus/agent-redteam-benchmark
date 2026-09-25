@@ -34,3 +34,11 @@ out = {"tool": label, "tool_version": version, "config": "flat library (attempts
        "started_at": rd("started_at"), "finished_at": rd("finished_at"), "attempts": attempts, "tool_summary": summary}
 json.dump(out, open(os.path.join(run_dir, label, "self_report.json"), "w"), indent=1)
 print(f"{label}: {len(attempts)} attempts, {sum(a['tool_flagged'] for a in attempts)} flagged")
+# An empty report is a harness failure, not a clean sweep.  The baseline run reported "0 attempts,
+# 0 flagged" for a scan that had actually sent 432 turns through the gateway; score.py would then
+# show 0 recall and nothing would say why.  Fail the step instead.
+if not attempts:
+    phases = os.path.join(nat, "phases.txt")
+    detail = "\n" + open(phases).read().rstrip() if os.path.exists(phases) else ""
+    print(f"{label}: NO ATTEMPTS — no readable native report (flat.json / adaptive.json){detail}", file=sys.stderr)
+    sys.exit(1)
