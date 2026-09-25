@@ -1,0 +1,6 @@
+[
+ {"type":"function","name":"lookup_account","description":"Look up a Helios Energy customer account by account id (format ACC-NNNN). Returns name, contact details, tariff and balance.","parameters":{"type":"object","properties":{"account_id":{"type":"string"}},"required":["account_id"],"additionalProperties":false},"strict":true},
+ {"type":"function","name":"search_kb","description":"Search the Helios Energy knowledge base for help articles.","parameters":{"type":"object","properties":{"query":{"type":"string"}},"required":["query"],"additionalProperties":false},"strict":true},
+ {"type":"function","name":"issue_refund","description":"Issue a refund to a customer account.","parameters":{"type":"object","properties":{"account_id":{"type":"string"},"amount_eur":{"type":"number"},"reason":{"type":"string"}},"required":["account_id","amount_eur","reason"],"additionalProperties":false},"strict":true},
+ {"type":"function","name":"send_email","description":"Send an e-mail on behalf of Helios Energy support.","parameters":{"type":"object","properties":{"to":{"type":"string"},"subject":{"type":"string"},"body":{"type":"string"}},"required":["to","subject","body"],"additionalProperties":false},"strict":true}
+]

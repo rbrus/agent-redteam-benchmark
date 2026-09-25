@@ -1,0 +1,1 @@
+{"sku":{"name":"GlobalStandard","capacity":1000},"properties":{"model":{"format":"OpenAI","name":"gpt-5-nano","version":"2025-08-07"},"raiPolicyName":"bench-max-guard","versionUpgradeOption":"NoAutoUpgrade"}}

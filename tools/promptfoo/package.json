@@ -1,0 +1,8 @@
+{
+  "name": "bench-promptfoo",
+  "private": true,
+  "description": "promptfoo red teaming, pinned for agent-redteam-benchmark",
+  "dependencies": {
+    "promptfoo": "0.123.1"
+  }
+}

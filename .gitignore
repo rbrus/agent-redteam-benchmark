@@ -1,0 +1,12 @@
+.env
+.secrets/
+.venv/
+venvs/
+__pycache__/
+*.pyc
+# raw run data stays local; scripts/publish_results.sh copies the sanitized results into results/
+runs/
+node_modules/
+.ruff_cache/
+.deepeval/
+.pytest_cache/

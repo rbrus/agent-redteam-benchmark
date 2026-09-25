@@ -1,0 +1,100 @@
+{
+  "properties": {
+    "basePolicyName": "Microsoft.DefaultV2",
+    "mode": "Blocking",
+    "contentFilters": [
+      {
+        "name": "Hate",
+        "severityThreshold": "Low",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Hate",
+        "severityThreshold": "Low",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Sexual",
+        "severityThreshold": "Low",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Sexual",
+        "severityThreshold": "Low",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Violence",
+        "severityThreshold": "Low",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Violence",
+        "severityThreshold": "Low",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Selfharm",
+        "severityThreshold": "Low",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Selfharm",
+        "severityThreshold": "Low",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Jailbreak",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Indirect Attack",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Protected Material Text",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Protected Material Code",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Profanity",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Profanity",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      }
+    ]
+  }
+}

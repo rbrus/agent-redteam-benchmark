@@ -1,0 +1,16 @@
+[2026-09-24T15:39:43Z] start promptfoo
+[2026-09-24T15:39:43Z] start pyrit
+[2026-09-24T15:39:43Z] start agent-probe
+[2026-09-24T15:40:53Z] end   agent-probe rc=0
+[2026-09-24T15:41:01Z] start sixi-scanner
+[2026-09-24T15:44:53Z] start azure-redteam
+[2026-09-24T19:20:16Z] end   promptfoo rc=0
+[2026-09-24T19:20:16Z] start deepteam
+[2026-09-24T19:21:04Z] end   pyrit rc=0
+[2026-09-24T19:21:04Z] start garak
+[2026-09-24T20:05:37Z] end   sixi-scanner rc=0
+[2026-09-24T20:13:02Z] end   deepteam rc=0
+[2026-09-24T21:14:55Z] end   garak rc=0
+[2026-09-24T21:14:55Z] all done
+[2026-09-24T21:15:30Z] end   azure-redteam rc=stopped (turn budget exceeded; multi_turn scan partial)
+[2026-09-25T03:22:28Z] start sixi-scanner-next
