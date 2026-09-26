@@ -3,6 +3,8 @@
 #   SIXI_SCANNER_BIN   path to the sixi-scanner binary (default: sixi-scanner on PATH)
 #   SIXI_LABEL         gateway label (default sixi-scanner; lets a second build run as e.g. sixi-scanner-next)
 #   SIXI_PHASE_A_ONLY  1 = skip the adaptive phase (Phase B)
+#   SIXI_CONTEXT       target-context JSON (default tools/sixi-scanner/context.json; "" = none)
+#   SIXI_TIMEOUT       seconds to wait for one reply (default 90; sixi's own default is 30)
 # Writes $RUN_DIR/$LABEL/native/phases.txt: one row per phase with its exit code, report size and
 # the signal that killed it, so an interrupted run is visible instead of reading as "0 attempts".
 set -euo pipefail
@@ -17,8 +19,16 @@ OUT="$RUN_DIR/$LABEL/native"; mkdir -p "$OUT"
 export SIXI_ATTACKER_PROVIDER=openai SIXI_ATTACKER_MODEL=attacker SIXI_ATTACKER_API_KEY=x \
        SIXI_ATTACKER_BASE_URL="$GW/attacker/$LABEL/v1" SIXI_ATTACKER_RESIDENCY=local
 TARGET="$GW/t/$LABEL/chat"
-# Optional target context (sixi-scanner >= the target-context change): SIXI_CONTEXT=tools/sixi-scanner/context.json
-CTX=(); [ -n "${SIXI_CONTEXT:-}" ] && CTX=(--context "$SIXI_CONTEXT")
+# Target context: what the agent is for and whose data it may show.  With a context present, the
+# default --confirm asks the judge model whether a marker hit really violated the agent's stated
+# rules (and screens a break whose only data is the caller's own) instead of filing it as-is, which
+# is the difference between a plausible-looking flag and one a reviewer will stand behind.  The
+# shipped context is the default so a fresh checkout gets that; set SIXI_CONTEXT="" to scan bare.
+CTX=(); CTX_FILE="${SIXI_CONTEXT-tools/sixi-scanner/context.json}"; [ -n "$CTX_FILE" ] && CTX=(--context "$CTX_FILE")
+# The default 30s gave up on three sends in the 2026-09-24 run while the gateway was still
+# answering: the attempt was recorded as a failure, so a turn the ground truth scored was a turn sixi
+# never read. Patient by default here — only one send in ~500 needed it — and SIXI_TIMEOUT overrides.
+SLOW=(--timeout "${SIXI_TIMEOUT:-90}")
 "$BIN" version > "$OUT/version.txt" 2>&1 || true
 date -u +%FT%TZ > "$OUT/started_at"
 : > "$OUT/phases.txt"
@@ -50,10 +60,10 @@ if [ "$SMOKE" = "--smoke" ]; then
     --attempts 1 --fail-on none --format json
 else
   # Phase A: the whole technique library, each payload rewritten by the attacker model, 2 attempts.
-  phase flat "$OUT/flat.json" "$BIN" scan --target "$TARGET" "${CTX[@]}" --attempts 2 --fail-on none --format json
+  phase flat "$OUT/flat.json" "$BIN" scan --target "$TARGET" "${CTX[@]}" "${SLOW[@]}" --attempts 2 --fail-on none --format json
   if [ "${SIXI_PHASE_A_ONLY:-0}" != "1" ]; then
     # Phase B: the multi-turn adaptive agents, up to 10 turns per technique.
-    phase adaptive "$OUT/adaptive.json" "$BIN" scan --target "$TARGET" "${CTX[@]}" --adaptive --turns 10 \
+    phase adaptive "$OUT/adaptive.json" "$BIN" scan --target "$TARGET" "${CTX[@]}" "${SLOW[@]}" --adaptive --turns 10 \
       --fail-on none --format json
   fi
 fi
