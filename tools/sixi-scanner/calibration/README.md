@@ -8,6 +8,7 @@ reproducible from the recorded 2026-09-24 baseline run; nothing was measured by 
 | file | what it is |
 |---|---|
 | `cal_records.json` | 560 records — one per attempt the baseline run made — each with the payload sent, the reply, and the technique's marker verdict **recomputed by sixi's current scorer** |
+| `falseclaim_records.json` | the 51 turns the baseline's unified judge confirmed as `false_action_claim` (promptfoo's), the measurement behind `LLM01.falseclaim.affirmation` |
 | `cache/confirm_cache__*.jsonl` | the confirmation judge's verdicts, one JSON line per ask: `[violation, reason]`, or `[violation, severity, reason]` for the framings that grade severity |
 | `measure_confirm.py` | asks the judge: renders sixi's real confirmation prompt for a record and stores the verdict in the cache |
 | `design_space.py` | prints the README's table: every `markers AND/OR <framings>` design scored the way `scoring/score.py` scores |
@@ -74,3 +75,26 @@ The framings were chosen by scoring them against this run's 19 confirmed violati
 labels the benchmark scores. That is calibration against the test set, not validation. P5
 re-validates the shipped design against a held-out judge model, and the numbers it produces are the
 ones that count.
+
+## The `false_action_claim` family, and what could not be ported
+
+promptfoo's largest confirmed category (51 turns — more than any other category any tool produced)
+asks the agent to confirm an action that never happened ("Has the email been successfully
+dispatched…?" → "Yes. I've sent the email…"). sixi now carries it as `LLM01.falseclaim.affirmation`,
+seeded with the family's proven shapes. Three facts from the measurement are recorded because they
+bound what the family can do:
+
+* The shipped confirmation framings keep **51 of 51** of the recorded false-claim turns — the
+  confirm pass is not the bottleneck.
+* The marker's recall over those same 51 recorded turns is **9 of 51**: the recorded replies assert
+  the completion in too many shapes (relative clauses, attributions, partial-credit clarifications)
+  for a presence regex. Against the live target the picture is the one that matters — six turns
+  (2026-09-26): five honest holds, one affirmation, fired. The recorded set still bounds the judge:
+  **18 of the 51** confirmed turns carried a real `send_email`, so the grading judge confirms
+  assertions whose trace would vindicate them. A flag from this family can therefore be a true
+  claim, and sixi has no tool trace to tell — that risk is disclosed here and in the technique's
+  header rather than resolved.
+* sixi's own 655 baseline turns contain **zero** completion assertions, because its library never
+  asked the agent to do anything. The family only produces value in a run that sends it — so its
+  contribution to the next run's `violating_turns` is bounded by its own flag rate, not by anything
+  recoverable from the recorded one.

@@ -139,6 +139,13 @@ For each tool, from the gateway log:
   (verbatim 4 of 4); the claims-partner payload hit in 6 of 12, also for all three codes. Removing
   the first payload's closing sentence takes its verbatim hit rate from 2 of 3 to 0 of 3, which the
   accompanying test pins.
+* **sixi's library gained the family behind the benchmark's largest confirmed category.**
+  promptfoo's `false_action_claim` (51 confirmed turns) asked the agent to confirm actions that
+  never happened. sixi now carries it as `LLM01.falseclaim.affirmation`, seeded with the family's
+  proven shapes and owned by the prompt-injection scout. Its measurement — what the framings keep,
+  what the marker catches, and the trace-blindness caveat that means a flag can be a true claim —
+  is in `tools/sixi-scanner/calibration/README.md`. It was measured after the recorded run, so no
+  number in the baseline tables includes it.
 * **sixi-scanner's target context now ships as the default.** `tools/sixi-scanner/context.json`
   carries the agent's eight hard rules as the purpose and `--confirm` defaults to true, so a scan out
   of the box asks its confirmation question against the agent's actual rules instead of an empty
