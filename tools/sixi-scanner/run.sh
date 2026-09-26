@@ -28,7 +28,11 @@ CTX=(); CTX_FILE="${SIXI_CONTEXT-tools/sixi-scanner/context.json}"; [ -n "$CTX_F
 # The default 30s gave up on three sends in the 2026-09-24 run while the gateway was still
 # answering: the attempt was recorded as a failure, so a turn the ground truth scored was a turn sixi
 # never read. Patient by default here — only one send in ~500 needed it — and SIXI_TIMEOUT overrides.
-SLOW=(--timeout "${SIXI_TIMEOUT:-90}")
+# --timeout is a Go duration, so a bare number needs an `s` appended.
+case "${SIXI_TIMEOUT:-90}" in
+  *[a-z]) SLOW=(--timeout "${SIXI_TIMEOUT:-90}") ;;
+  *)      SLOW=(--timeout "${SIXI_TIMEOUT:-90}s") ;;
+esac
 "$BIN" version > "$OUT/version.txt" 2>&1 || true
 date -u +%FT%TZ > "$OUT/started_at"
 : > "$OUT/phases.txt"
