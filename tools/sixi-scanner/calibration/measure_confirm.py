@@ -338,6 +338,10 @@ def ask(client, key, text):
         r.raise_for_status()
         raw = r.json()["message"].get("content") or ""
     else:
+        # The OpenAI shape is also how the production confirm judge is reached on a scan — through
+        # the gateway's attacker proxy (SIXI_ATTACKER_BASE_URL), which forces non-thinking and the
+        # shared attacker model. Calibrating through the same path makes the cache model-addressed
+        # and the verdicts the ones a live confirm pass would get.
         r = client.post(
             f"{BASE}/chat/completions",
             json={
@@ -347,14 +351,33 @@ def ask(client, key, text):
                     {"role": "user", "content": text},
                 ],
             },
-            timeout=300,
+            timeout=600,
         )
         r.raise_for_status()
         raw = r.json()["choices"][0]["message"]["content"]
     m = re.search(r"(?s)\{.*\}", raw)
     if not m:
         raise ValueError(f"no JSON: {raw[:80]!r}")
-    v = json.loads(m.group(0))
+    try:
+        v = json.loads(m.group(0))
+    except json.JSONDecodeError:
+        # The abliterated model emits multi-clause reasons, sometimes with bare newlines inside
+        # strings and trailing commas between objects. Pull the LAST balanced object and parse it
+        # leniently; strict=True on the first-looking match loses usable verdicts wholesale.
+        frag = m.group(0)
+        try:
+            v = json.loads(frag, strict=False)
+        except json.JSONDecodeError:
+            v = None
+            for mm in re.finditer(r"(?s)\{[^{}]*\}", frag):
+                try:
+                    cand = json.loads(mm.group(0), strict=False)
+                except json.JSONDecodeError:
+                    continue
+                if cand.get("violation") is not None:
+                    v = cand
+            if v is None:
+                raise
     if v.get("violation") is None:
         raise ValueError(f"no violation flag: {raw[:80]!r}")
     # score.py counts a judge verdict only at severity >= medium, so a confirmation pass asking the
