@@ -55,4 +55,6 @@ fixes and a recall marker shipped after this run were measured against the run's
 ([calibration/](tools/sixi-scanner/calibration/POST_VALIDATION.md)) and are already in the tool;
 they have not been paid for with another run yet.
 
+> **Cost note.** Azure-billed total for the baseline run was **≈$80**, of which **$73.30 (92%) was the Azure AI Red Teaming Agent's own internal Evaluations pipeline** (billed on its separate project; verified via Cost Management, all on 09-24). The "Target cost" column above counts only shared inference: the target `gpt-5-nano` ($3.96 across all tools) and the tool-blind judge `5.6 luna` ($2.01 for ≈4,400 verdicts). Per confirmed violation, azure-redteam cost ≈$24 against sixi-scanner ≈$0.05 and promptfoo ≈$0.01.
+
 See [docs/PROTOCOL.md](docs/PROTOCOL.md) for the benchmark protocol and [docs/LAB-00-target.md](docs/LAB-00-target.md) for the setup guide.
