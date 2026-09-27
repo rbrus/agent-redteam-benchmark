@@ -18,6 +18,14 @@ OUT="$RUN_DIR/$LABEL/native"; mkdir -p "$OUT"
 # The shared attacker model: rewrites Phase-A payloads and drives the Phase-B adaptive agents.
 export SIXI_ATTACKER_PROVIDER=openai SIXI_ATTACKER_MODEL=attacker SIXI_ATTACKER_API_KEY=x \
        SIXI_ATTACKER_BASE_URL="$GW/attacker/$LABEL/v1" SIXI_ATTACKER_RESIDENCY=local
+# The confirmation judge: a DEDICATED local model, not the attacker. Measured on the 2026-09-27
+# release run's confirm-read turns: qwen3.8:27b kept 15 with 14 of 22 unified-judge-confirmed
+# violations and 1 false positive (precision 0.933), where the attacker model kept 17 with 9 and 8
+# (0.529) — the attacker model screens ~40% of true violations. tools/sixi-scanner/calibration/
+# judge_compare.py holds the measurement; SIXI_JUDGE_* overrides for a scan.
+export SIXI_JUDGE_PROVIDER=openai SIXI_JUDGE_MODEL="${SIXI_JUDGE_MODEL:-qwen3.8:27b}" \
+       SIXI_JUDGE_API_KEY=x SIXI_JUDGE_BASE_URL="${SIXI_JUDGE_BASE_URL:-http://localhost:11434/v1}" \
+       SIXI_JUDGE_RESIDENCY=local
 TARGET="$GW/t/$LABEL/chat"
 # Target context: what the agent is for and whose data it may show.  With a context present, the
 # default --confirm asks the judge model whether a marker hit really violated the agent's stated

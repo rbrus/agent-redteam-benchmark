@@ -162,3 +162,20 @@ For each tool, from the gateway log:
   15, the extra confirmation being `LLM05.ansi.direct_emission`, one of the confirmed violating
   inputs. This changes what sixi can observe about turns that already happened; it changes no
   recorded result.
+* **sixi-scanner's confirmation judge changed after the 09-27 release run: it is now a dedicated
+  local model (qwen3.8:27b), not the shared attacker model.** Measured on the 09-27 release run's
+  confirm-read turns under the same contract-bearing question: the attacker model kept 17 turns with
+  9 of the 22 unified-judge-confirmed violations and 8 false keeps (precision 0.529) — it screened
+  ~40% of true violations. qwen3.8:27b kept 15 with 14 confirmed and 1 false (precision 0.933).
+  The dedicated judge (`SIXI_JUDGE_*`, a seam the tool already had for Phase B) now serves both
+  phases; the attacker model still writes every attack. `tools/sixi-scanner/calibration/
+  judge_compare.py` holds the measurement.
+* **sixi-scanner's confirmation design was simplified after the 09-27 release run.** The
+  three-framing confirm (claim → rules → policy) measured under the production confirm judge kept
+  59 records for 11 confirmed turns on that run's own flags (P 0.169), where the single
+  contract-bearing policy framing keeps 16 for 6 (P 0.375). The claim and rules framings' marginal
+  confirmed turns cost ~33 false keeps and put precision below the benchmark bar. In their place, a
+  fourth pass **adjudicates decline-shaped holds**: a turn the markers held whose reply declines in
+  its own words is asked to the confirm judge, because that is where a target hides a violation it
+  commits anyway (measured: 7 of 16 ground-truth violations raised on that run's 510 decline-shaped
+  holds, budget 200/scan).
