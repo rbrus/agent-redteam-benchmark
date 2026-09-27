@@ -24,36 +24,34 @@ content safety. Scored from the wire, not from the tools' own reports.**
 | azure-redteam | 1.18.6 | 2578 | 64% | 3 | 2 | — | 0 | — | 0% | 330.3 | 0.57 | 0 |
 | agent-probe | ? | 12 | 25% | 0 | 0 | — | 0 | — | — | 1.0 | 0.00 | 0 |
 
-## sixi-scanner after its first fix cycle (2026-09-26)
+## sixi-scanner fix cycles (2026-09-26 → 09-27)
 
 The 09-24 baseline ran sixi-scanner with an empty target context and no confirmation pass. Every
-finding it reported was screened by nothing, and the ones it missed were missed by silence. The
-fix cycle that followed — all disclosed in [PROTOCOL §7](docs/PROTOCOL.md) — shipped a declared
-target context, a three-framing confirmation judge, a rule-recitation wrapper, proven payload ports,
-and a timeout so a slow reply is waited for rather than scored as a wall.
+finding it reported was screened by nothing, and the ones it missed were missed by silence. Three
+runs since — each with more fixes shipped (all disclosed in [PROTOCOL §7](docs/PROTOCOL.md)) — show
+the same tool climbing the same leaderboard:
 
-Re-running the tool against the same target and judge (767 turns, $0.59 target spend — the other six
-tools were not re-run; their 09-24 rows are the comparison):
+| sixi-scanner run | binary highlights | Turns | Confirmed violations | Risk categories | Oracle codes | Self-flagged | Precision | Recall |
+|---|---|---|---|---|---|---|---|---|
+| 09-24 baseline | empty context, no confirm pass, no timeout | 655 | 19 | 3 | — | 108 | 3% | 16% |
+| 09-26 validation | declared context, 3-framing confirm, payload ports, timeout | 767 | 27 | 8 | 3 | 119 | 10% | 44% |
+| 09-27 release build | + false-claim family & siblings, declined-then-produced marker, contract rules in both gates | 870 | **37** | 7 | 3 | **64** | 12% | 22% |
+| next (pending run) | + dedicated confirm judge (qwen3.8:27b, measured 0.933 precision on the 09-27 run's turns), adjudication pass for decline-shaped holds | — | — | — | — | — | — | — |
 
-| Tool | Turns | Blocked by Azure | Confirmed violations | Risk categories | Oracle codes hit | Self-flagged | Precision | Recall | Wall clock (min) | Target cost (USD) | Attacker tokens |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| sixi-scanner (2026-09-26) | 767 | 2% | **27** | **8** | **DATA_EXFIL_VIA_TOOL, INDIRECT_INJECTION_FOLLOWED, UNAUTHORIZED_EMAIL_RECIPIENT** | 119 | **10%** | **44%** | 215.0 | 0.59 | 1,255,527 |
+Leaderboard position after the 09-27 release-build run: **3rd on confirmed violations** (promptfoo
+89, garak 81, sixi 37, deepteam 22, pyrit 16), **2nd on risk breadth** (garak 8, sixi 7),
+**tied-1st on oracle codes** with promptfoo, 4th on precision, 4th on recall.
 
-Against the 09-24 leaderboard, the same tool moved **from last competitive place to third**:
+Per-run details and the measured trade-offs:
+[results/2026-09-26-validation/README.md](results/2026-09-26-validation/README.md) ·
+[results/2026-09-27-sixi-final/README.md](results/2026-09-27-sixi-final/README.md) ·
+[results/2026-09-27-sixi-release-build/README.md](results/2026-09-27-sixi-release-build/README.md).
 
-| | 09-24 | 09-26 | leaderboard (best of each tool) |
-|---|---|---|---|
-| Confirmed violations | 19 (5th) | **27** | **3rd** — behind promptfoo (89) and garak (81), ahead of deepteam (22) and pyrit (16) |
-| Distinct oracle codes | 0 | **3** | **tied-1st** with promptfoo |
-| Risk categories | 3 | **8** | **tied-1st** with garak |
-| Recall | 0.158 (5th) | **0.444** | **2nd** — garak 0.556 |
-| Precision | 0.028 (5th) | 0.101 | 4th — deepteam 0.300 |
-
-Details, the measured shortfalls, and where each gain came from:
-[results/2026-09-26-validation/README.md](results/2026-09-26-validation/README.md). Two precision
-fixes and a recall marker shipped after this run were measured against the run's own recorded turns
-([calibration/](tools/sixi-scanner/calibration/POST_VALIDATION.md)) and are already in the tool;
-they have not been paid for with another run yet.
+The trade the last run made is explicit: tightening the confirmation funnel raised yield and
+precision (37 violations on 64 flags, 12%) but gave back recall (0.444 → 0.216) — traced by
+measurement to the confirm-judge model, and fixed in the tool (a dedicated local judge measured at
+0.933 precision on that run's own turns). That fix is disclosed in
+[PROTOCOL §7](docs/PROTOCOL.md) and awaits its validating run.
 
 ## How the target agent is built
 
