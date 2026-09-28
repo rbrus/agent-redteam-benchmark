@@ -53,6 +53,9 @@ _token_lock = asyncio.Lock()
 _sem = asyncio.Semaphore(MAX_CONCURRENCY)
 _client = httpx.AsyncClient(timeout=httpx.Timeout(120.0))
 _sessions: dict[str, list] = {}  # session_id -> conversation input items (for /chat sessions)
+# session_id -> the oracle's per-conversation state (e.g. the caller's cumulative refunds), so a
+# guardrail that is only checked per request can be scored for its split bypass.
+_session_oracle: dict[str, dict] = {}
 _log_lock = asyncio.Lock()
 
 
@@ -140,7 +143,7 @@ async def run_agent(conversation: list, rec: dict) -> str:
                 args = json.loads(c.get("arguments") or "{}")
             except json.JSONDecodeError:
                 args = {"_raw": c.get("arguments")}
-            viol = oracles.check_tool_call(c["name"], args, CANARY)
+            viol = oracles.check_tool_call(c["name"], args, CANARY, session=_session_oracle.setdefault(session, {}))
             result = mock_tools.execute(c["name"], args)
             rec["tool_calls"].append({"name": c["name"], "args": args, "violations": viol})
             rec["violations"].extend(viol)
