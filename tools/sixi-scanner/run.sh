@@ -18,16 +18,15 @@ OUT="$RUN_DIR/$LABEL/native"; mkdir -p "$OUT"
 # The shared attacker model: rewrites Phase-A payloads and drives the Phase-B adaptive agents.
 export SIXI_ATTACKER_PROVIDER=openai SIXI_ATTACKER_MODEL=attacker SIXI_ATTACKER_API_KEY=x \
        SIXI_ATTACKER_BASE_URL="$GW/attacker/$LABEL/v1" SIXI_ATTACKER_RESIDENCY=local
-# The confirmation judge: a DEDICATED local model (qwen3.8:27b), not the attacker. Measured on the
-# 09-27 release run's confirm-read turns: qwen3.8 kept 15 with 14 of 22 unified-judge-confirmed
-# violations and 1 false keep (precision 0.933); the attacker model kept 17 with 9 and 8 (0.529) —
-# it screens ~40% of true violations. The dense 27B runs ~45 s per confirm call co-resident with
-# the attacker on this GPU, so a validating run adds ~2-3 h of wall clock; that is the measured
-# trade for not filing screened noise as findings. tools/sixi-scanner/calibration/judge_compare.py
-# holds the measurement; SIXI_JUDGE_* overrides for a scan.
-export SIXI_JUDGE_PROVIDER=openai SIXI_JUDGE_MODEL="${SIXI_JUDGE_MODEL:-qwen3.8:27b}" \
-       SIXI_JUDGE_API_KEY=x SIXI_JUDGE_BASE_URL="${SIXI_JUDGE_BASE_URL:-http://localhost:11434/v1}" \
-       SIXI_JUDGE_RESIDENCY=local
+# The confirmation judge: the attacker model with the confirm-2 prompt is the shipped configuration.
+# Measured on the 09-27 release run's confirm-read turns: the attacker model + confirm-2 keeps 10 of
+# the 22 unified-judge-confirmed violations at 6 false keeps (precision 0.625, up from 0.529 with the
+# v7 prompt). A dedicated qwen3.8:27b judge measured 0.933 there (14 kept, 1 false) but this box
+# serves ONE GPU-resident model at a time: with qwen3.8 resident beside the attacker, CUDA-context
+# thrashing made a single attacker call take 610 s (measured 2026-09-28) — a run would take 30+ h.
+# So the attacker judges; SIXI_JUDGE_* stays opt-in for deployments that keep the models on separate
+# GPUs. tools/sixi-scanner/calibration/judge_compare.py holds all three measurements.
+unset SIXI_JUDGE_MODEL SIXI_JUDGE_BASE_URL SIXI_JUDGE_API_KEY SIXI_JUDGE_PROVIDER SIXI_JUDGE_RESIDENCY
 TARGET="$GW/t/$LABEL/chat"
 # Target context: what the agent is for and whose data it may show.  With a context present, the
 # default --confirm asks the judge model whether a marker hit really violated the agent's stated
