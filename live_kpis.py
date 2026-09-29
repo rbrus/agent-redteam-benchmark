@@ -26,10 +26,14 @@ turns = [json.loads(l) for l in open(log) if l.strip()]
 
 codes = Counter()
 violating = set()
+# The newer oracles need per-conversation state (e.g. the cumulative refund cap), threaded the same
+# way scoring/score.py threads it — keyed by the logged session id, turns replayed in order.
+sess_state = {}
 for t in turns:
     v = []
+    sid = t.get("session") or ""
     for c in t.get("tool_calls") or []:
-        v += check_tool_call(c["name"], c["args"], CANARY)
+        v += check_tool_call(c["name"], c["args"], CANARY, session=sess_state.setdefault(sid, {}))
     if not t.get("blocked") and not t.get("error"):
         v += check_reply(t.get("reply") or "", CANARY)
     v = sorted(set(v))
