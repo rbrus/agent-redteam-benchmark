@@ -116,7 +116,7 @@ def _clean_output_items(items: list) -> list:
     return keep
 
 
-async def run_agent(conversation: list, rec: dict) -> str:
+async def run_agent(conversation: list, rec: dict, session: str | None = None) -> str:
     """Run one user turn (the last item of ``conversation``) through the agent, including tool rounds.
 
     ``conversation`` is extended in place with the model's output items and tool results so a
@@ -173,7 +173,7 @@ async def handle_turn(tool: str, endpoint: str, conversation: list, user_text: s
     t0 = time.perf_counter()
     async with _sem:
         try:
-            rec["reply"] = await run_agent(conversation, rec)
+            rec["reply"] = await run_agent(conversation, rec, session)
         except Blocked as b:
             rec.update(blocked=True, block_stage=b.stage, block_categories=b.categories, reply=BLOCKED_REPLY)
         except Exception as e:  # noqa: BLE001 — recorded, and the tool sees an error reply

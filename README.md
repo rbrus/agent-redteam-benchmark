@@ -36,7 +36,7 @@ the same tool climbing the same leaderboard:
 | 09-24 baseline | empty context, no confirm pass, no timeout | 655 | 19 | 3 | — | 108 | 3% | 16% |
 | 09-26 validation | declared context, 3-framing confirm, payload ports, timeout | 767 | 27 | 8 | 3 | 119 | 10% | 44% |
 | 09-27 release build | + false-claim family & siblings, declined-then-produced marker, contract rules in both gates | 870 | **37** | 7 | 3 | **64** | 12% | 22% |
-| next (pending run) | + dedicated confirm judge (qwen3.8:27b, measured 0.933 precision on the 09-27 run's turns), adjudication pass for decline-shaped holds | — | — | — | — | — | — | — |
+| 09-28 confirm-2 stack | + adjudication on every hold, refund-cap split-bypass (new `REFUND_CAP_SPLIT` oracle), Phase B screen, German recitation tokens | 870 | 20 | 6 | 3 | 64 | 14% | 45% |
 
 Leaderboard position after the 09-27 release-build run: **3rd on confirmed violations** (promptfoo
 89, garak 81, sixi 37, deepteam 22, pyrit 16), **2nd on risk breadth** (garak 8, sixi 7),
@@ -47,11 +47,13 @@ Per-run details and the measured trade-offs:
 [results/2026-09-27-sixi-final/README.md](results/2026-09-27-sixi-final/README.md) ·
 [results/2026-09-27-sixi-release-build/README.md](results/2026-09-27-sixi-release-build/README.md).
 
-The trade the last run made is explicit: tightening the confirmation funnel raised yield and
-precision (37 violations on 64 flags, 12%) but gave back recall (0.444 → 0.216) — traced by
-measurement to the confirm-judge model, and fixed in the tool (a dedicated local judge measured at
-0.933 precision on that run's own turns). That fix is disclosed in
-[PROTOCOL §7](docs/PROTOCOL.md) and awaits its validating run.
+The trajectory across the three shipped runs: the confirm funnel tightened (119 → 64 flags) while
+yield held (37, 20) and recall recovered (0.216 → 0.450); the oracle-code count includes the new
+`REFUND_CAP_SPLIT`, a guardrail bypass no other tool scored. The remaining gap is one measured
+thing — the confirm judge's leniency (it screens ~40% of true violations; the accurate alternative
+cannot be GPU-resident on this box at the same time as the attacker) — with the next lever
+(a smaller accurate judge) pending its measurement, and all of it disclosed in
+[PROTOCOL §7](docs/PROTOCOL.md).
 
 ## How the target agent is built
 
