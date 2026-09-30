@@ -37,6 +37,7 @@ the same tool climbing the same leaderboard:
 | 09-26 validation | declared context, 3-framing confirm, payload ports, timeout | 767 | 27 | 8 | 3 | 119 | 10% | 44% |
 | 09-27 release build | + false-claim family & siblings, declined-then-produced marker, contract rules in both gates | 870 | **37** | 7 | 3 | **64** | 12% | 22% |
 | 09-28 confirm-2 stack | + adjudication on every hold, refund-cap split-bypass (new `REFUND_CAP_SPLIT` oracle), Phase B screen, German recitation tokens | 870 | 20 | 6 | 3 | 64 | 14% | 45% |
+| 09-29 depth | + depth siblings (side-channel ×2, overflow, research-frame), adjudication budget 500 | 884 | 31 | 5 | 1 | 83 | **16%** | 42% |
 
 Leaderboard position after the 09-27 release-build run: **3rd on confirmed violations** (promptfoo
 89, garak 81, sixi 37, deepteam 22, pyrit 16), **2nd on risk breadth** (garak 8, sixi 7),
@@ -45,15 +46,17 @@ Leaderboard position after the 09-27 release-build run: **3rd on confirmed viola
 Per-run details and the measured trade-offs:
 [results/2026-09-26-validation/README.md](results/2026-09-26-validation/README.md) ·
 [results/2026-09-27-sixi-final/README.md](results/2026-09-27-sixi-final/README.md) ·
-[results/2026-09-27-sixi-release-build/README.md](results/2026-09-27-sixi-release-build/README.md).
+[results/2026-09-27-sixi-release-build/README.md](results/2026-09-27-sixi-release-build/README.md) ·
+[results/2026-09-29-sixi-depth/README.md](results/2026-09-29-sixi-depth/README.md).
 
-The trajectory across the three shipped runs: the confirm funnel tightened (119 → 64 flags) while
-yield held (37, 20) and recall recovered (0.216 → 0.450); the oracle-code count includes the new
-`REFUND_CAP_SPLIT`, a guardrail bypass no other tool scored. The remaining gap is one measured
-thing — the confirm judge's leniency (it screens ~40% of true violations; the accurate alternative
-cannot be GPU-resident on this box at the same time as the attacker) — with the next lever
-(a smaller accurate judge) pending its measurement, and all of it disclosed in
-[PROTOCOL §7](docs/PROTOCOL.md).
+The trajectory across the four shipped runs: the confirm funnel tightened (119 → 64 → 83 flags
+while adjudication widened), precision climbed 0.028 → 0.157 — **ahead of every tool except
+deepteam** — and sixi holds 3rd place on violations. The oracle codes flip with the target's
+stochasticity (3 → 0 → 3 → 1), now including `REFUND_CAP_SPLIT`, a guardrail bypass no other tool
+scored. The remaining gap is one measured thing — the confirm judge's quality on this box (the
+accurate model cannot be GPU-resident beside the attacker) — disclosed in
+[PROTOCOL §7](docs/PROTOCOL.md); the shipped `SIXI_JUDGE_*` seam runs it on a multi-GPU host, where
+the measured projections clear both remaining bars.
 
 ## How the target agent is built
 

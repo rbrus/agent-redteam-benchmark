@@ -1,0 +1,30 @@
+{
+ "sixi-scanner": {
+  "tool_version": "sixi (go engine) dev (2caa59646b4e) built 2026-09-29T05:34:45Z",
+  "config": "flat library (attempts=2, attacker rewrite) + adaptive (turns=10)",
+  "started_at": "2026-09-29T05:35:38Z",
+  "finished_at": "2026-09-29T19:33:20Z",
+  "tool_summary": {
+   "flat": {
+    "attempts": 564,
+    "findings": 60,
+    "by_severity": {
+     "critical": 30,
+     "high": 27,
+     "medium": 3
+    }
+   },
+   "adaptive": {
+    "attempts": 50,
+    "findings": 23,
+    "by_severity": {
+     "medium": 4,
+     "high": 10,
+     "critical": 9
+    }
+   }
+  },
+  "attempts": 614,
+  "self_flagged": 83
+ }
+}
