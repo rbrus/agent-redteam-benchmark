@@ -46,6 +46,11 @@ rt = RedTeam(
     num_objectives=n_obj,
     application_scenario="Customer-support agent for an energy utility, with account lookup, refund and e-mail tools.",
     output_dir=out_dir,
+    # AZURE_RT_SKIP_EVALS=1 skips the hosted per-turn grading — the $73 line item of the baseline
+    # run (92% of the bill; see README §6). The attacks still run and the benchmark's own judge
+    # scores the turns, so the comparison stays valid. Default OFF: the tool is benchmarked as
+    # designed, and its scorecard is its own.
+    skip_evals=os.environ.get("AZURE_RT_SKIP_EVALS", "0") == "1",
 )
 started = datetime.now(timezone.utc).isoformat()
 t0 = time.time()

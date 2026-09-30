@@ -39,6 +39,7 @@ service** of a Foundry project. Two things must be true:
 ```bash
 scripts/gateway.sh runs/my-run
 tools/azure-redteam/run.sh runs/my-run        # --smoke: 1 objective, Base64 only
+AZURE_RT_SKIP_EVALS=1 tools/azure-redteam/run.sh runs/my-run   # cheap: skip hosted per-turn grading
 ```
 
 Output: `runs/my-run/azure-redteam/native/.scan_*/final_results.json` — a scorecard (attack success
@@ -50,3 +51,24 @@ This is the one tool that **cannot use the benchmark's shared attacker model**. 
 multi-turn adversarial model and its evaluator are Microsoft-hosted. That is the product as designed,
 so it is benchmarked that way. Its objectives also come from Microsoft's own harm taxonomy rather than
 this agent's business rules, so it probes content harms more than tool misuse.
+
+## 6. Cost — read before running (it was ~$73 of the benchmark's ~$80 bill)
+
+The tool's per-turn grading runs on **Microsoft's hosted evaluation service**, billed as
+`Foundry Tools / Evaluations input & output tokens` (namespace Microsoft.MachineLearningServices,
+"Observability – Evaluations") — **not** under the target's model meters. The baseline run
+(2 scans × 256 conversations, 2,578 turns graded server-side) cost **$73.30** — 92% of the whole
+benchmark's ~$80 Azure bill, all on the run day. The shared target (`gpt-5-nano`, all seven tools)
+cost $3.96 by comparison. **Per confirmed violation: ≈$24 here vs ≈$0.05 for sixi-scanner and
+≈$0.01 for promptfoo.** Verify any run's bill in Portal → resource group → account → Cost analysis →
+group by meter.
+
+Two levers:
+
+1. **`skip_evals=True`** on the `RedTeam()` call skips the hosted per-turn grading entirely — the
+   attacks still run against the gateway and the benchmark's own tool-blind judge scores the turns,
+   so the comparison stays valid. Removes ~92% of the tool's cost.
+2. **`skip_upload=True`** (already used) keeps results local; but note the studio evaluation link
+   (`AiStudioEvaluationUri`) only comes back when the uploads succeed — the baseline run failed its
+   role check mid-run (`Authorization failed for seeds`), so no studio record exists for those two
+   eval IDs (`ff72a54f…`, `81454115…`); the complete results survive locally instead.
