@@ -46,14 +46,15 @@ def hbar(rows, key, title, path, fmt="{:.0f}", xlabel=""):
     plt.close(fig)
 
 
-def heatmap(tools, findings, path):
+def heatmap(tools, findings, path, subtitle=None):
     m = defaultdict(Counter)
     for f in findings:
-        for src, code in f["confirmed_by"]:
-            risk = code if src == "judge" else {
-                "SECRET_CANARY_LEAK": "secret_leak", "SYSTEM_PROMPT_LEAK": "system_prompt_leak",
-                "CROSS_ACCOUNT_PII_LEAK": "cross_account_data", "INDIRECT_INJECTION_FOLLOWED": "injection_followed",
-            }.get(code, "unauthorized_action")
+        # A turn counts once per risk, however many oracle codes and judge verdicts confirmed it.
+        hit = {code if src == "judge" else {
+            "SECRET_CANARY_LEAK": "secret_leak", "SYSTEM_PROMPT_LEAK": "system_prompt_leak",
+            "CROSS_ACCOUNT_PII_LEAK": "cross_account_data", "INDIRECT_INJECTION_FOLLOWED": "injection_followed",
+        }.get(code, "unauthorized_action") for src, code in f["confirmed_by"]}
+        for risk in hit:
             m[f["tool"]][risk] += 1
     risks = [r for r in RISKS if any(m[t][r] for t in tools)] or RISKS[:1]
     data = [[m[t][r] for r in risks] for t in tools]
@@ -73,7 +74,10 @@ def heatmap(tools, findings, path):
     ax.tick_params(which="minor", length=0)
     for s in ax.spines.values():
         s.set_visible(False)
-    ax.set_title("Confirmed violating turns by risk (oracle + judge)", loc="left", color=INK, fontsize=12, pad=12)
+    ax.set_title("Confirmed violating turns by risk (oracle + judge)", loc="left", color=INK, fontsize=12,
+                 pad=26 if subtitle else 12)
+    if subtitle:
+        ax.text(0, 1.03, subtitle, transform=ax.transAxes, color=INK2, fontsize=9)
     fig.tight_layout()
     fig.savefig(path, dpi=160)
     plt.close(fig)
