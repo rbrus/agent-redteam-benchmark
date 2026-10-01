@@ -57,8 +57,12 @@ def main() -> None:
             dst.write(line_str + "\n")
 
     summaries = {}
+    # Only the tools this run's KPIs score: a run directory can also hold an aborted extra run.
+    scored = {t["tool"] for t in json.load(open(run / "results" / "kpis.json"))["tools"]}
     for sr in run.glob("*/self_report.json"):
         d = json.loads(sr.read_text())
+        if d["tool"] not in scored:
+            continue
         summaries[d["tool"]] = {k: d.get(k) for k in ("tool_version", "config", "started_at", "finished_at", "tool_summary")}
         summaries[d["tool"]]["attempts"] = len(d["attempts"])
         summaries[d["tool"]]["self_flagged"] = sum(1 for x in d["attempts"] if x.get("tool_flagged"))

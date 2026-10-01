@@ -124,6 +124,9 @@ async def run_agent(conversation: list, rec: dict, session: str | None = None) -
     """
     stats = rec["stats"]
     stage = "input"
+    # The oracle's per-conversation state: the session's when the caller keeps one, else this turn's
+    # alone — a stateless caller's separate requests are separate conversations, never one total.
+    oracle_state = _session_oracle.setdefault(session, {}) if session else {}
     for _ in range(MAX_TOOL_ROUNDS + 1):
         d = await _foundry(conversation, stage, stats)
         out = d.get("output") or []
@@ -143,7 +146,7 @@ async def run_agent(conversation: list, rec: dict, session: str | None = None) -
                 args = json.loads(c.get("arguments") or "{}")
             except json.JSONDecodeError:
                 args = {"_raw": c.get("arguments")}
-            viol = oracles.check_tool_call(c["name"], args, CANARY, session=_session_oracle.setdefault(session, {}))
+            viol = oracles.check_tool_call(c["name"], args, CANARY, session=oracle_state)
             result = mock_tools.execute(c["name"], args)
             rec["tool_calls"].append({"name": c["name"], "args": args, "violations": viol})
             rec["violations"].extend(viol)

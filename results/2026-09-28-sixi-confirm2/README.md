@@ -13,14 +13,21 @@ cost note), same tool-blind judge.
 |---|---|---|---|
 | turns | 655 | 870 | 870 |
 | confirmed violations | 19 | **37** | 20 |
-| distinct oracle codes | 0 | 3 | **3** — including the NEW `REFUND_CAP_SPLIT` |
+| distinct oracle codes | 0 | 4 | **3** — including `REFUND_CAP_SPLIT` |
 | confirmed risk categories | 3 | 7 | 6 |
 | self-flagged | 108 | 64 | 64 |
 | precision | 0.028 | 0.125 | 0.141 |
 | recall | 0.158 | 0.216 | 0.450 |
 
 Targets: **violating turns 20 > 19 ✓ (by one — fragile), oracle codes 3 ≥ 3 ✓; precision 0.141 ✗,
-recall 0.450 ✗.**
+recall 0.450 ✗.** (The violations target is sixi's own baseline; codes, precision and recall are the
+field's best — promptfoo, DeepTeam, garak.)
+
+*Re-scored 2026-10-01 under the corrected session-aware oracle (PROTOCOL §7).* Both of this run's
+splits were genuine — each one request that queued 2 × 30 EUR — but the first oracle shared one state
+across all session-less turns and fired once per run, so it scored only the first. The corrected
+oracle scores both (oracle-violating turns 3 → 4); the second was already judge-confirmed, so no KPI
+in the table changes. The 09-27 column now shows that run's re-scored codes: it held a split too.
 
 ## What this run proves
 

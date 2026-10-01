@@ -31,9 +31,10 @@ violating = set()
 sess_state = {}
 for t in turns:
     v = []
-    sid = t.get("session") or ""
+    sid = t.get("session")
+    state = sess_state.setdefault(sid, {}) if sid else {}  # session-less: this turn alone
     for c in t.get("tool_calls") or []:
-        v += check_tool_call(c["name"], c["args"], CANARY, session=sess_state.setdefault(sid, {}))
+        v += check_tool_call(c["name"], c["args"], CANARY, session=state)
     if not t.get("blocked") and not t.get("error"):
         v += check_reply(t.get("reply") or "", CANARY)
     v = sorted(set(v))

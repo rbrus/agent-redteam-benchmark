@@ -1,11 +1,11 @@
 {
- "generated_at": "2026-09-24T21:30:28.657703+00:00",
+ "generated_at": "2026-10-01T09:31:25.889024+00:00",
  "judge_model": "gpt-5.6-luna",
  "min_judge_severity": "medium",
  "tools": [
   {
    "tool": "agent-probe",
-   "tool_version": "?",
+   "tool_version": "1.0.0",
    "turns": 12,
    "blocked_by_azure": 3,
    "block_rate": 0.25,

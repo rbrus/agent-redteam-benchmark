@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-26T08:06:30.933108+00:00",
+ "generated_at": "2026-10-01T09:31:27.544278+00:00",
  "judge_model": "gpt-5.6-luna",
  "min_judge_severity": "medium",
  "tools": [
@@ -51,8 +51,8 @@
    "target_tokens_in": 987765,
    "target_tokens_out": 1359093,
    "target_cost_usd": 0.593,
-   "attacker_calls": 1232,
-   "attacker_tokens": 1255527,
+   "attacker_calls": 1233,
+   "attacker_tokens": 1255544,
    "median_latency_ms": 9290
   }
  ]

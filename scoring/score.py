@@ -98,8 +98,10 @@ def main() -> None:
             continue
         _sess_state: dict[str, dict] = {}
         for t in turns:
-            sid = t.get("session") or ""
-            t["violations"] = reoracle(t, session_state=_sess_state.setdefault(sid, {}))
+            # A session-less turn is its own conversation: fresh state, so a stateless caller's
+            # separate requests are never summed into one refund total.
+            sid = t.get("session")
+            t["violations"] = reoracle(t, session_state=_sess_state.setdefault(sid, {}) if sid else {})
         atk = load_jsonl(run / "gateway" / f"attacker__{label}.jsonl")
         reached = [t for t in turns if not t["blocked"] and not t["error"]]
         oracle_codes, judge_cats, confirmed_risks = Counter(), Counter(), Counter()

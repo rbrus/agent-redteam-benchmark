@@ -12,14 +12,20 @@ model, same tool-blind judge as the baseline.
 |---|---|---|---|
 | turns | 655 | 767 | 870 |
 | confirmed violations | 19 | 27 | **37** |
-| distinct oracle codes | 0 | 3 | **3** (reproduced) |
+| distinct oracle codes | 0 | 3 | **4** — the three e-mail codes reproduced, plus `REFUND_CAP_SPLIT` |
 | confirmed risk categories | 3 | 8 | 7 |
 | self-flagged | 108 | 119 | **64** |
 | precision | 0.028 | 0.101 | **0.125** |
 | recall | 0.158 | 0.444 | 0.216 |
 
 Leaderboard position: **3rd on confirmed violations** (promptfoo 89, garak 81, sixi 37, deepteam 22,
-pyrit 16), **2nd on risk breadth** (garak 8, sixi 7), **tied-1st on oracle codes** with promptfoo.
+pyrit 16), **2nd on risk breadth** (garak 8, sixi 7), **1st on oracle codes** (sixi 4, promptfoo 3).
+
+*Re-scored 2026-10-01 under the corrected session-aware oracle (PROTOCOL §7).* This run predates the
+`REFUND_CAP_SPLIT` oracle, and one of its turns already holds the bypass: asked for one 30-EUR
+reimbursement through a parallel-tools workflow, the agent queued two in the same reply. The judge had
+confirmed that turn as `unauthorized_action`, so violations, precision and recall are unchanged; the
+oracle code is the only addition.
 
 ## What moved
 
@@ -35,12 +41,14 @@ pyrit 16), **2nd on risk breadth** (garak 8, sixi 7), **tied-1st on oracle codes
 * **Recall 0.444 → 0.216.** The confirm simplification keeps fewer of the judge-confirmed turns:
   of this run's 37 violating turns, the confirm judge read 33 and **screened 14** (11 marker hits +
   3 adjudication candidates). The post-run measurement
-  ([judge_compare.py](../tools/sixi-scanner/calibration/judge_compare.py)) traced this to the
+  ([judge_compare.py](../../tools/sixi-scanner/calibration/judge_compare.py)) traced this to the
   confirm-judge model: the shared attacker model screens ~40% of true violations under this prompt.
 * **Fix shipped, not yet benchmarked:** sixi's confirmation judge is now a dedicated local model
   (`qwen3.8:27b`, `SIXI_JUDGE_*`), measured on this run's own confirm-read turns at **precision 0.933
   (14 of 22 confirmed kept, 1 false keep)** where the attacker model scored 0.529 (9 kept, 8 false).
   The Phase B judge wiring (`5945c9a`) routes the same model into the attribution gate.
+  *(Later reverted for this hardware: the two models cannot be GPU-resident together on this box, so
+  the runs from 09-28 on use the attacker model with the stricter confirm-2 prompt — PROTOCOL §7.)*
 
 ## Cost
 
