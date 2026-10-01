@@ -19,7 +19,8 @@ tools have their 2026-09-24 baseline rows.
 
 | Tool | Run / Version | Turns | Blocked by Azure | Confirmed violations | Risk categories | Oracle codes hit | Self-flagged | Precision | Recall | Wall clock (min) | Target cost (USD) | Attacker tokens |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| sixi-scanner | **09-29 depth** — dev (2caa596) + depth siblings, adjudication-500 | 884 | 2% | 31 | 5 | REFUND_CAP_SPLIT | 83 | **16%** | 42% | 836.9 | 0.70 | 1,848,770 |
+| sixi-scanner | **09-30 v9** — dev (8ff4fd1) + v9 confirm prompt (honest-refusal screen), 348 techniques | 841 | 2% | 22 | 7 | INDIRECT_INJECTION_FOLLOWED, REFUND_CAP_SPLIT, UNAUTHORIZED_EMAIL_RECIPIENT | 88 | **16%** | **64%** | ~795 | 0.66 | ~1,600,000 |
+| sixi-scanner | 09-29 depth — dev (2caa596) + depth siblings, adjudication-500 | 884 | 2% | 31 | 5 | REFUND_CAP_SPLIT | 83 | 16% | 42% | 836.9 | 0.70 | 1,848,770 |
 | sixi-scanner | 09-28 confirm-2 — dev (af73049) + all-holds adjudication, split-bypass, Phase B screen | 870 | 2% | 20 | 6 | 3 — incl. new REFUND_CAP_SPLIT | 64 | 14% | 45% | 689.9 | 0.66 | 1,571,720 |
 | sixi-scanner | 09-27 release build — dev (fc74925) + false-claim family, declined-produced marker | 870 | 1% | **37** | 7 | 3 | 64 | 12% | 22% | 227.5 | 0.72 | 1,666,622 |
 | sixi-scanner | 09-26 validation — dev (2fed280) + context, 3-framing confirm, payload ports, timeout | 767 | 2% | 27 | 8 | 3 | 119 | 10% | 44% | 215.0 | 0.59 | 1,255,527 |
@@ -31,12 +32,12 @@ tools have their 2026-09-24 baseline rows.
 | azure-redteam | 1.18.6 (09-24) | 2578 | 64% | 3 | 2 | — | 0 | — | 0% | 330.3 | 0.57 | 0 |
 | agent-probe | ? (09-24) | 12 | 25% | 0 | 0 | — | 0 | — | — | 1.0 | 0.00 | 0 |
 
-**sixi-scanner's evolution over five runs of the same loop** (measure on recorded ground truth →
-ship → re-run): confirmed violations 19 → 31 (best 37), precision 0.028 → 0.157 — **ahead of every
-tool except deepteam** — recall 0.158 → 0.42 (best 0.46), and its oracle-code set now includes
-`REFUND_CAP_SPLIT`, a guardrail bypass no other tool scored. Against the 09-24 leaderboard the
-current release is **3rd on violations** (promptfoo 89, garak 81, sixi 31), **2nd on recall**
-(garak 0.556), **2nd on precision** (deepteam 0.300), **3rd on risk breadth**.
+**sixi-scanner's evolution over six runs of the same loop** (measure on recorded ground truth →
+ship → re-run): confirmed violations 19 → 22 (best 37), precision 0.028 → 0.159 — **ahead of every
+tool except deepteam** — and recall 0.158 → **0.636 — 1st on the leaderboard** (garak 0.556). Its
+oracle-code set includes `REFUND_CAP_SPLIT`, a guardrail bypass no other tool scored. Against the
+09-24 leaderboard the current release is **3rd on violations** (promptfoo 89, garak 81, sixi 22),
+**1st on recall**, **2nd on precision** (deepteam 0.300), **3rd on risk breadth**.
 
 ## The fix-cycle detail
 
@@ -52,16 +53,18 @@ the same tool climbing the same leaderboard:
 | 09-27 release build | + false-claim family & siblings, declined-then-produced marker, contract rules in both gates | 870 | **37** | 7 | 3 | **64** | 12% | 22% |
 | 09-28 confirm-2 stack | + adjudication on every hold, refund-cap split-bypass (new `REFUND_CAP_SPLIT` oracle), Phase B screen, German recitation tokens | 870 | 20 | 6 | 3 | 64 | 14% | 45% |
 | 09-29 depth | + depth siblings (side-channel ×2, overflow, research-frame), adjudication budget 500 | 884 | 31 | 5 | 1 | 83 | **16%** | 42% |
+| 09-30 v9 | + v9 confirm prompt (the honest-refusal screen, measured 0.800 on the 09-27 run's turns) | 841 | 22 | 7 | 3 | 88 | **16%** | **64%** |
 
-Leaderboard position after the 09-29 depth run: **3rd on confirmed violations** (promptfoo 89,
-garak 81, sixi 31, deepteam 22, pyrit 16), **2nd on risk breadth** (garak 8, sixi 5),
-**2nd on precision** (deepteam 0.300, sixi 0.157), **2nd on recall** (garak 0.556, sixi 0.419).
+Leaderboard position after the 09-30 v9 run: **3rd on confirmed violations** (promptfoo 89,
+garak 81, sixi 22, deepteam 22, pyrit 16), **1st on recall** (0.636, garak 0.556), **2nd on
+precision** (deepteam 0.300, sixi 0.159), **3rd on risk breadth** (garak 8, sixi 7).
 
 Per-run details and the measured trade-offs:
 [results/2026-09-26-validation/README.md](results/2026-09-26-validation/README.md) ·
 [results/2026-09-27-sixi-final/README.md](results/2026-09-27-sixi-final/README.md) ·
 [results/2026-09-27-sixi-release-build/README.md](results/2026-09-27-sixi-release-build/README.md) ·
-[results/2026-09-29-sixi-depth/README.md](results/2026-09-29-sixi-depth/README.md).
+[results/2026-09-29-sixi-depth/README.md](results/2026-09-29-sixi-depth/README.md) ·
+[results/2026-09-30-sixi-v9/README.md](results/2026-09-30-sixi-v9/README.md).
 
 The trajectory across the four shipped runs: the confirm funnel tightened (119 → 64 → 83 flags
 while adjudication widened), precision climbed 0.028 → 0.157 — **ahead of every tool except
