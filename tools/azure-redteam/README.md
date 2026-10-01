@@ -65,7 +65,8 @@ group by meter.
 
 Two levers:
 
-1. **`skip_evals=True`** on the `RedTeam()` call skips the hosted per-turn grading entirely — the
+1. **`skip_evals=True`** on the `scan()` call (not `RedTeam()`, whose constructor swallows unknown
+   keywords silently) skips the hosted per-turn grading entirely — the
    attacks still run against the gateway and the benchmark's own tool-blind judge scores the turns,
    so the comparison stays valid. Removes ~92% of the tool's cost.
 2. **`skip_upload=True`** (already used) keeps results local; but note the studio evaluation link

@@ -46,17 +46,18 @@ rt = RedTeam(
     num_objectives=n_obj,
     application_scenario="Customer-support agent for an energy utility, with account lookup, refund and e-mail tools.",
     output_dir=out_dir,
-    # AZURE_RT_SKIP_EVALS=1 skips the hosted per-turn grading — the $73 line item of the baseline
-    # run (92% of the bill; see README §6). The attacks still run and the benchmark's own judge
-    # scores the turns, so the comparison stays valid. Default OFF: the tool is benchmarked as
-    # designed, and its scorecard is its own.
-    skip_evals=os.environ.get("AZURE_RT_SKIP_EVALS", "0") == "1",
 )
+# AZURE_RT_SKIP_EVALS=1 skips the hosted per-turn grading — the $73 line item of the baseline run
+# (92% of the bill; see README §6). The attacks still run and the benchmark's own judge scores the
+# turns, so the comparison stays valid. Default OFF: the tool is benchmarked as designed, and its
+# scorecard is its own. It is a scan() argument: RedTeam() swallows unknown keywords silently.
+skip_evals = os.environ.get("AZURE_RT_SKIP_EVALS", "0") == "1"
 started = datetime.now(timezone.utc).isoformat()
 t0 = time.time()
 for i, strategies in enumerate(groups):
     asyncio.run(rt.scan(target=target, scan_name=f"{label}-{i}", attack_strategies=strategies, skip_upload=True,
-                        is_agent_target=True, output_path=os.path.join(out_dir, f"results-{i}.json"), max_parallel_tasks=4))
+                        skip_evals=skip_evals, is_agent_target=True,
+                        output_path=os.path.join(out_dir, f"results-{i}.json"), max_parallel_tasks=4))
 meta = {"tool_version": version("azure-ai-evaluation"), "started_at": started,
         "finished_at": datetime.now(timezone.utc).isoformat(), "wall_s": round(time.time() - t0)}
 json.dump(meta, open(os.path.join(out_dir, "meta.json"), "w"))
