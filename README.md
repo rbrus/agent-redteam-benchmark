@@ -74,7 +74,8 @@ precision 0.248 → 0.270. Details in [docs/recitation.md](https://github.com/rb
    and collected 62 confirmed violating turns — 3rd on the leaderboard — from **9 distinct payloads**,
    re-sending them up to twenty times each. Every other tool sits at 1.0–1.5 turns per attack. The
    metric counts turns, so a fixed payload set is rewarded for repetition; `scoring/distinct.py` now
-   reports distinct attacks beside it, and `sixi-oss` is 6th on that column ([details
+   reports distinct attacks beside it, and on that column the open-source build is **6th** — the gap
+   it still has to close is breadth, not precision ([details
    below](#the-open-source-build-on-the-same-wire)).
 7. **The bill hides in the tool, not the target.** $73.30 of the baseline's $79.99 Azure bill (92%)
    was the Azure AI Red Teaming Agent's own hosted grading. The target agent cost $3.96 for all seven
@@ -94,7 +95,8 @@ this scope (each tool's lab in [`tools/`](tools/) records it).
 | **PyRIT** 1.1.0 | A framework rather than a scanner. Our wiring of Crescendo, RedTeaming and converters drew system-prompt leaks and off-topic compliance; what it finds depends on the objectives you write | 16 violations · 3 categories |
 | **Azure AI Red Teaming Agent** 1.18.6 | The platform's own tool: hosted objectives, attacker and grader. Its attacks are the ones the filters stop | 64% blocked · 3 violations |
 | **agent-probe** | A 12-probe smoke test: one minute, no attacker model | 0 violations |
-| **sixi-scanner**, 09-30 v9 | Highest recall, and the only tool to elicit the refund-cap split (after six measured re-runs; see below) | R 0.609 · P 0.159 · 23 violations · 3 oracle codes |
+| **sixi-scanner-oss** 0.4.0, 10-06 | Best recall on the board, and it got there with no LLM in the tool at all — a 30-line shared marker took recall 0.444 → 0.857. Second on precision, at $0.47 and zero attacker tokens | R 0.857 · P 0.270 · 33 violations |
+| **sixi-scanner** (licensed), 09-30 v9 | The only tool to elicit the refund-cap split, after six measured re-runs (see below) | R 0.609 · P 0.159 · 23 violations · 3 oracle codes |
 
 ![Confirmed violating turns by tool and risk category: each tool's 2026-09-24 baseline, plus sixi-scanner's 09-30 v9 run](results/risk_heatmap.png)
 
@@ -305,7 +307,8 @@ unified-judge verdicts.
 | [`target/`](target/) | the agent's instructions and tools, the mock back-end, the oracles, the gateway |
 | [`infra/`](infra/) | the Foundry setup: RAI policy, deployment, agent |
 | [`tools/<name>/`](tools/) | one lab per tool: how it is installed and wired, the exact config it ran with, its result parser |
-| [`scoring/`](scoring/) | the tool-blind judge, the KPIs, the charts |
+| [`scoring/`](scoring/) | the tool-blind judge, the KPIs, the charts, and the checkers: `verify_published.py` (recomputes every figure from the logs), `audit_prose.py` (fails when a published number drifts from the data), `distinct.py` (attacks, not turns) |
 | [`results/`](results/) | every published run: `kpis.json`/`.csv`, `table.md`, charts, `findings.jsonl` (each confirmed turn: input, reply, tool calls, what confirmed it) |
 | [`tools/sixi-scanner/calibration/`](tools/sixi-scanner/calibration/) | the offline confirmation-judge measurements, reproducible from the repository |
+| [`tools/sixi-scanner-oss/`](tools/sixi-scanner-oss/) | the open-source build's lab, its result parser, and [PORTING.md](tools/sixi-scanner-oss/PORTING.md): every mechanism measured for porting from the other codebases here |
 | [`docs/`](docs/) | [PROTOCOL.md](docs/PROTOCOL.md) (the rules, and §7: every change made after a run) · [LAB-00-target.md](docs/LAB-00-target.md) (the build guide) |
