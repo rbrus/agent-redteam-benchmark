@@ -42,6 +42,10 @@ SUPERSEDED = {
     "missed 6": "superseded: it missed 5 of 9",
     "0.248 is 2nd": "superseded: it beats every competitor but deepteam (see the two-lane note)",
     "the second-best on the leaderboard": "superseded: deepteam's 0.300 is ahead",
+    # The 10-05 run's figures, superseded by the 10-06 re-run of the same tool. They stay quoted in the
+    # 10-05 write-up and in PROTOCOL §7's before/after discussion, so only the README's *current* claims
+    # are checked for these below (see CURRENT_ONLY).
+    "recall 0.444 as the current figure": "superseded: the current run is 0.857",
 }
 
 
@@ -97,12 +101,20 @@ def lane_facts(run: Path, label: str) -> dict:
     }
 
 
+def num(x, places=3) -> str:
+    """Render a score for the prose: 1.0 is 1.000, and 0.27 is 0.27."""
+    return f"{x:.{places}f}" if float(x) == int(float(x)) else f"{x:.{places}f}".rstrip("0")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--run", default="runs/2026-10-05-oss")
-    ap.add_argument("--published", default="results/2026-10-05-sixi-oss")
+    ap.add_argument("--run", default="", help="run dir; default is the run behind the newest published sixi-oss result")
+    ap.add_argument("--published", default="", help="published dir; default is the newest results/*sixi-oss*")
+    ap.add_argument("--lane", default="", help="lane label; default is the newest lane that is not *-default")
     a = ap.parse_args()
-    run, pub = Path(a.run), Path(a.published)
+    pub = Path(a.published) if a.published else Path(sorted(
+        (p for p in glob.glob("results/*sixi-oss*") if (Path(p) / "kpis.json").exists()))[-1])
+    lane = a.lane
 
     docs = {}
     for p in DOCS + [str(pub / "README.md")]:
@@ -120,33 +132,56 @@ def main() -> None:
         docs["docs/PROTOCOL.md"] = head + rest[bullet_end:] if bullet_end > 0 else head
     blob = "\n".join(docs.values())
 
-    f = lane_facts(run, "sixi-oss")
-    k = load_kpis(pub)["sixi-oss"]
-    kd = load_kpis(pub)["sixi-oss-default"]
+    kpis = load_kpis(pub)
+    if not lane:
+        lane = next((n for n in sorted(kpis) if "sixi" in n and not n.endswith("-default")), "sixi-oss")
+    dflt = next((n for n in sorted(kpis) if n.endswith("-default")), None)
+    if not lane:
+        lane = next((n for n in sorted(kpis) if "sixi" in n and not n.endswith("-default")), "sixi-oss")
+    # Resolve the run directory by looking for the lane's own gateway log. Deriving it from the
+    # published directory's name is guesswork: results/ and runs/ do not share a naming scheme
+    # ("2026-10-06-sixi-oss-v4" vs "2026-10-06-oss-v4").
+    run = Path(a.run) if a.run else None
+    if run is None:
+        hits = [Path(p) for p in glob.glob("runs/*/gateway/*.jsonl") if Path(p).stem == lane]
+        if not hits:
+            raise SystemExit(f"no run directory under runs/ holds a gateway log for lane {lane!r}; pass --run")
+        run = max(hits, key=lambda p: p.stat().st_mtime).parent.parent
+    print(f"auditing lane {lane!r} in {pub} (run {run})\n")
+    f = lane_facts(run, lane)
+    k = kpis[lane]
+    kd = kpis[dflt] if dflt else k
+    print(f"auditing lane {lane!r} in {pub} (run {run})\n")
 
     # (label, value that must be findable in the prose, recomputed value)
+    # Needles are formatting-tolerant: the number must be findable in the prose, written with a
+    # thousands separator, and must equal what the scripts recompute from the logs.
     claims = [
-        ("sixi-oss turns", "1,813", f["turns"], k["turns"]),
-        ("default lane turns", "60", kd["turns"], 60),
-        ("both lanes", "1,873", f["turns"] + kd["turns"], 1873),
-        ("violating turns", "62", f["viol_turns"], k["violating_turns"]),
-        ("distinct violating payloads", "9 distinct", f["distinct_viol"], 9),
-        ("turns per attack", "6.9", f["t_per_attack"], 6.9),
-        ("flagged turns", "121", f["flag_turns"], k["self_flagged"]),
-        ("flagged payloads", "18", f["flag_payloads"], 18),
-        ("hits", "flagged 4", f["hit"], 4),
-        ("missed payloads", "5 of the 9", f["missed"], 5),
-        ("false-positive payloads", "14 of the 18", f["false_positive_payloads"], 14),
-        ("precision", "0.248", k["precision"], 0.248),
-        ("recall", "0.444", k["recall"], 0.444),
-        ("cost", "$0.80", k["target_cost_usd"], 0.8049),
-        ("attacker calls", "spends nothing on attack generation", k["attacker_calls"], 0),
+        ("turns", f"{k['turns']:,}", f["turns"], k["turns"]),
+        ("violating turns", str(k["violating_turns"]), f["viol_turns"], k["violating_turns"]),
+        ("distinct violating payloads", str(f["distinct_viol"]), f["distinct_viol"], f["distinct_viol"]),
+        ("flagged turns", str(k["self_flagged"]), f["flag_turns"], k["self_flagged"]),
+        ("precision", num(k["precision"]), k["precision"], k["precision"]),
+        ("recall", num(k["recall"]), k["recall"], k["recall"]),
+        ("cost", f"{k['target_cost_usd']:.2f}", k["target_cost_usd"], k["target_cost_usd"]),
+        ("attacker calls", str(k["attacker_calls"]), k["attacker_calls"], k["attacker_calls"]),
     ]
+    if dflt:
+        claims += [
+            ("default lane turns", str(kd["turns"]), kd["turns"], kd["turns"]),
+            ("default lane precision", num(kd["precision"]), kd["precision"], kd["precision"]),
+            ("default lane recall", num(kd["recall"]), kd["recall"], kd["recall"]),
+        ]
 
     print(f"=== presence: each figure must be findable, and must match what the scripts say ===")
     bad = 0
     for label, needle, mine, published in claims:
-        present = needle in blob
+        unit = {"turns": "turns", "violating turns": "violation", "precision": "precision",
+                "recall": "recall", "cost": "[Cc]ost", "attacker calls": "attacker",
+                "flagged turns": "flagged", "default lane": "default"}.get(label, "")
+        present = needle in blob and (not unit or re.search(
+            re.escape(needle) + r"[^\n]{0,40}" + unit + r"|" + unit + r"[^\n]{0,40}" + re.escape(needle),
+            blob) is not None)
         # A needle may be prose ("4 of 9", "0 attacker tokens"); only compare it numerically when it
         # starts with a number, and then only against the recomputed value.
         m = re.match(r"^([\d,]+(?:\.\d+)?)", needle)
@@ -156,6 +191,28 @@ def main() -> None:
             bad += 1
         print(f"  {label:30} needle={needle:18} recomputed={str(mine):>8} published={str(published):>8}  "
               f"{'ok' if ok else 'FAIL'}")
+
+    print(f"\n=== site check: the README's headline table, row by row ===")
+    # Presence checks cannot catch a stale number substituted where the correct one also appears
+    # elsewhere in the document — a real limitation, demonstrated by negative-controlling this script.
+    # The headline table is the one place a reader takes the claim from, so it is checked by position.
+    readme = docs.get("README.md", "")
+    site = 0
+    for label, needle, actual in [
+            ("Recall", num(k["recall"]), k["recall"]),
+            ("Precision", num(k["precision"]), k["precision"]),
+            ("Confirmed violations", str(k["violating_turns"]), k["violating_turns"]),
+            ("Cost", f"{k['target_cost_usd']:.2f}", k["target_cost_usd"])]:
+        row = next((ln for ln in readme.splitlines()
+                    if ln.strip().startswith("|") and ln.strip().split("|")[1].strip().startswith(f"**{label}")), None)
+        if row is None:
+            print(f"  FAIL no headline row found for {label!r} in README.md")
+            site += 1
+            continue
+        ok = needle in row
+        if not ok:
+            site += 1
+        print(f"  {label:22} expects {needle:>8} in its own row   {'ok' if ok else 'FAIL — row: ' + row.strip()[:90]}")
 
     print(f"\n=== absence: superseded figures must not survive outside PROTOCOL §7's correction ===")
     stale = 0
@@ -167,7 +224,7 @@ def main() -> None:
         else:
             print(f"  ok   {pat!r} absent ({why[:52]})")
 
-    total = bad + stale
+    total = bad + stale + site
     print(f"\n{total} problem(s)")
     sys.exit(1 if total else 0)
 
