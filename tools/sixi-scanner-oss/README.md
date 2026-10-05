@@ -68,7 +68,7 @@ This is the one place the open-source build cannot be compared to the others on 
 worth being blunt about: **its rounds are repeats, not new attacks.** Twenty rounds of 21 techniques
 are the same 71 distinct payloads sent up to twenty times each. The licensed build's extra budget
 bought 348 techniques and multi-turn adaptive agents. A repeat can confirm reproducibility; it cannot
-discover a new attack class — and the measurement bears this out: **1,813 turns produced 11 distinct
+discover a new attack class — and the measurement bears this out: **1,813 turns produced 9 distinct
 violating payloads, a ratio of 6.9 turns per distinct attack, where every other tool on the
 leaderboard sits at 1.0–1.5.** The leaderboard's `violating_turns` column credits those repeats as if
 they were new findings, which is why `scoring/distinct.py` exists.

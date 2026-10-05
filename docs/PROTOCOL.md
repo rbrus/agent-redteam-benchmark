@@ -246,3 +246,22 @@ For each tool, from the gateway log:
   values, and the tool's own judge is a substring matcher over published markers — a paraphrase shares
   no substring with them. Only the LLM judge sees it, which is why the run has zero oracle codes and
   62 judge-confirmed turns. Disclosed as a measured capability gap in the tool, not scored away.
+* **Correction to the 10-05 open-source write-up (2026-10-05, same day).** The published prose said the
+  `sixi-oss` lane's 62 violating turns came from "11 distinct payloads", that it "flagged 5" of them and
+  "missed 6", and that it had "13 distinct false positives". Those figures were tallied from a set built
+  over **both lanes of the run** (`sixi-oss` and `sixi-oss-default`) and, in the recall case, counted judge
+  verdicts below the `--min-judge-severity medium` floor. Under `scoring/score.py`'s own semantics the
+  `sixi-oss` lane is **62 turns from 9 distinct payloads**, **18 payloads flagged, 4 hits, 5 missed**,
+  **14 false-positive payloads**. The published "6.9 turns per attack" was always correct (62/9) and is
+  now consistent with the payload count beside it; the `11` was the pooled two-lane figure and was
+  internally inconsistent with the 6.9 ratio printed next to it. `scoring/verify_published.py` was added
+  to recompute every lane's figures from the gateway log and the recorded judge cache under score.py's
+  semantics, and to print them next to the published KPIs so a mismatch is visible — that script is what
+  caught this. No KPI, chart, table or `findings.jsonl` was touched: only prose that had drifted from the
+  scripts.
+* **A note on the two KPIs' denominators.** `scoring/score.py` computes **precision turn-weighted**
+  (flagged turns confirmed / flagged turns) and **recall payload-weighted** (distinct confirmed inputs
+  flagged / distinct confirmed inputs). The two columns therefore do not share a denominator, which is
+  why a tool that repeats one payload scores high turn-precision and low payload-recall.
+  `scoring/verify_published.py` and `tools/sixi-scanner-oss/measure_port.py` report both bases side by side
+  for that reason. Left as-is rather than redefined: changing it would move every published number.
