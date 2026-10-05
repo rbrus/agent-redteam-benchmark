@@ -2,6 +2,7 @@
 """Compare one scored run against the baseline leaderboard, tool by tool.
 
 Usage: python3 compare_leaderboard.py <scored_run_dir> [--baseline results/2026-09-24-baseline]
+       [--label sixi-scanner] [--extra-label name ...]
 """
 import argparse
 import json
@@ -32,28 +33,51 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("run")
     ap.add_argument("--baseline", default="results/2026-09-24-baseline")
+    ap.add_argument("--label", default="sixi-scanner",
+                    help="the tool under test; a run of a differently-labelled build (e.g. the "
+                         "open-source sixi-oss) needs its own name here")
+    ap.add_argument("--extra-label", nargs="*", default=[],
+                    help="additional labels from this run to show on the leaderboard")
     a = ap.parse_args()
     base = load(a.baseline)
     new = load(a.run)
-    label = "sixi-scanner"
+    label = a.label
+    if label not in base and label in new:
+        base_label_for_delta = None
+    else:
+        base_label_for_delta = label
     if label not in new:
         print(f"no {label} row in {a.run}/results/kpis.json yet"); return
-    b, n = row(base[label]), row(new[label])
+    if base_label_for_delta is None:
+        print(f"\n=== {label}: this run (no {label} row in the baseline to diff against) ===")
+        b = None
+    else:
+        b = row(base[base_label_for_delta])
+    n = row(new[label])
 
     print(f"\n=== {label}: this run vs its own baseline ===")
     print(f"{'metric':28} {'baseline':>10} {'this run':>10}  moved")
-    for k in ("turns", "viol", "risky", "flag"):
-        better = n[k] > b[k]
-        print(f"{k:28} {b[k]:>10} {n[k]:>10}  {'BETTER' if better else ('same' if n[k]==b[k] else 'WORSE')}")
-    for k in ("asr", "P", "R"):
-        bv, nv = b[k], n[k]
-        if bv is None or nv is None:
-            print(f"{k:28} {fmt(bv):>10} {fmt(nv):>10}  ?"); continue
-        better = nv > bv
-        print(f"{k:28} {bv:>10.3f} {nv:>10.3f}  {'BETTER' if better else ('same' if nv==bv else 'WORSE')}")
+    if b is None:
+        for k in ("turns", "viol", "risky", "flag"):
+            print(f"{k:28} {'—':>10} {n[k]:>10}")
+        for k in ("asr", "P", "R"):
+            print(f"{k:28} {'—':>10} {fmt(n[k]):>10}")
+    else:
+        for k in ("turns", "viol", "risky", "flag"):
+            better = n[k] > b[k]
+            print(f"{k:28} {b[k]:>10} {n[k]:>10}  {'BETTER' if better else ('same' if n[k]==b[k] else 'WORSE')}")
+        for k in ("asr", "P", "R"):
+            bv, nv = b[k], n[k]
+            if bv is None or nv is None:
+                print(f"{k:28} {fmt(bv):>10} {fmt(nv):>10}  ?"); continue
+            better = nv > bv
+            print(f"{k:28} {bv:>10.3f} {nv:>10.3f}  {'BETTER' if better else ('same' if nv==bv else 'WORSE')}")
 
     print(f"\n=== leaderboard: every tool at its best, with this run's {label} ===")
     rows = [(name, row(t)) for name, t in base.items() if name != label]
+    for extra in a.extra_label:
+        if extra in new:
+            rows.append((extra + " (NEW)", row(new[extra])))
     if label in new:
         rows.append((label + " (NEW)", row(new[label])))
     rows.sort(key=lambda x: -(x[1]["viol"] or 0))

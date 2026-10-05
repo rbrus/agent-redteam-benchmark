@@ -53,18 +53,28 @@ partial) are harness failures, and both are written down rather than being read 
 
 ## 4. Why 20 rounds, and what a round costs
 
-At `--attempts 5` a round sends 71 payloads (the sum of each technique's variant count). Twenty rounds
-is a ceiling of ~1,420 target turns — the protocol's ~1,500-turn budget — reached with the tool's own
-documented `--rounds` flag, whose stated purpose is exactly this: re-walking the technique set so a
-technique that only lands intermittently is caught.
+At `--attempts 5` a round sends up to **105** payloads — 21 techniques × 5 attempts — not 71. The
+engine sends one payload per attempt until the technique breaks, so a technique with 3 variants is
+still sent 5 times: once `Payload()` has run out of untried variants it wraps to `attempt % len`.
+Twenty rounds is therefore a ceiling of ~2,100 target turns.
+
+The run was configured on the estimate that a round costs 71 sends (~1,420 turns) and it came in at
+**1,813 turns**, i.e. roughly 20% over the protocol's ~1,500-turn cap. That overshoot is disclosed in
+PROTOCOL §7 rather than corrected after the fact: 20 rounds were set, all 20 ran, and all 1,813 logged
+turns are scored. For scale, azure-redteam overran the same cap by 72% and its extra turns were also
+scored in full.
 
 This is the one place the open-source build cannot be compared to the others on equal terms, so it is
 worth being blunt about: **its rounds are repeats, not new attacks.** Twenty rounds of 21 techniques
-are the same 71 payloads sent twenty times. The licensed build's extra budget bought 348 techniques and
-multi-turn adaptive agents. A repeat can confirm reproducibility; it cannot discover a new attack
-class. The runs below therefore also record what the tool finds at its documented default
-(`--rounds 1 --attempts 3`, 63 turns), so the number of *distinct attacks* is visible next to the
-number of *turns spent*.
+are the same 71 distinct payloads sent up to twenty times each. The licensed build's extra budget
+bought 348 techniques and multi-turn adaptive agents. A repeat can confirm reproducibility; it cannot
+discover a new attack class — and the measurement bears this out: **1,813 turns produced 11 distinct
+violating payloads, a ratio of 6.9 turns per distinct attack, where every other tool on the
+leaderboard sits at 1.0–1.5.** The leaderboard's `violating_turns` column credits those repeats as if
+they were new findings, which is why `scoring/distinct.py` exists.
+
+The run also records what the tool finds at its documented default (`--rounds 1 --attempts 3`, 60 turns
+sent), so the number of *distinct attacks* is visible next to the number of *turns spent*.
 
 ## 5. What is in the public repository, and what is not
 
