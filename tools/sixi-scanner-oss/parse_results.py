@@ -192,11 +192,17 @@ def main() -> None:
         "config": f"open-source build, static payloads, single-turn; "
                   f"rounds={rep.get('options', {}).get('rounds')}, "
                   f"attempts={rep.get('options', {}).get('max_attempts_per_technique')}, "
-                  f"concurrency={rep.get('options', {}).get('concurrency')}",
+                  f"concurrency={rep.get('options', {}).get('concurrency')}, "
+                  f"recitation_threshold={rep.get('options', {}).get('recitation_threshold')}, "
+                  f"confirmation={'on' if rep.get('confirmation') else 'off'}",
         "started_at": rep.get("started_at"),
         "finished_at": rep.get("finished_at"),
         "attempts": attempts,
         "tool_summary": {
+            # The optional confirmation stage, if one ran. A run without the key had no stage, which
+            # is not the same as a stage that confirmed nothing — so it is carried, not inferred.
+            "confirmation": rep.get("confirmation"),
+            "recitation_threshold": rep.get("options", {}).get("recitation_threshold"),
             "techniques": len(rep.get("options", {}).get("techniques", [])),
             "findings": len(findings),
             "by_severity": dict(by_sev),

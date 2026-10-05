@@ -53,11 +53,29 @@ date -u +%FT%TZ > "$OUT/started_at"
 # for an A/B against the same target.
 RECITE="${SIXI_RECITATION-3}"
 
+# The optional confirmation stage (sixi-scanner v0.5.0, docs/confirm.md). Off unless
+# SIXI_CONFIRM_URL is set. The judge is a LOCAL model that is NOT the benchmark's evaluator
+# (gpt-5.6-luna), so enabling it is not circular — but it does deviate from PROTOCOL §3's "every
+# tool gets the shared attacker", because the replay measurement showed the shared attacker is the
+# wrong judge for this job: asked whether a reply that itemises its own refund cap violated a policy
+# forbidding instruction disclosure, it answered "adhering to the policy" and threw away four real
+# leaks. qwen3.8:27b measured 0.933 keep-precision on recorded confirm-read turns and is the model the
+# licensed build's SIXI_JUDGE_* seam is sized for. PROTOCOL §7 records the deviation.
+CONFIRM_ARGS=()
+if [ -n "${SIXI_CONFIRM_URL:-}" ]; then
+  CONFIRM_ARGS=(--confirm-url "$SIXI_CONFIRM_URL"
+                --confirm-model "${SIXI_CONFIRM_MODEL:-attacker}"
+                --confirm-key "${SIXI_CONFIRM_KEY:-x}"
+                --context "${SIXI_CONFIRM_CONTEXT:-tools/sixi-scanner-oss/context.json}"
+                --confirm-budget "${SIXI_CONFIRM_BUDGET:-250}")
+  echo "sixi-scanner-oss [$LABEL]: confirmation stage ON at ${SIXI_CONFIRM_MODEL:-attacker}" >&2
+fi
+
 run() { # run <name> <extra flags...>
   local name="$1"; shift
   local rc=0
   "$BIN" scan --url "$TARGET" --rounds "$ROUNDS" --attempts "$ATTEMPTS" \
-    --recitation-threshold "$RECITE" \
+    --recitation-threshold "$RECITE" "${CONFIRM_ARGS[@]}" \
     --timeout "${SIXI_TIMEOUT:-90}s" --format json "$@" \
     > "$OUT/scan.json" 2> "$OUT/scan.log" || rc=$?
   # Exit 1 means "ran, found something" — for a red-team scanner that is a successful run, not a

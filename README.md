@@ -7,16 +7,20 @@ content safety. Scored from the wire, not from the tools' own reports.**
 
 ## The current build, in four numbers
 
-The highlighted bar is **[sixi-scanner](https://github.com/rbrus/sixi-scanner) v0.4.0**, the open-source
+The highlighted bar is **[sixi-scanner](https://github.com/rbrus/sixi-scanner) v0.5.0**, the open-source
 build, run through the same gateway, the same ten deterministic oracles and the same tool-blind judge as
-everything else in the chart.
+everything else in the chart. Every number below came from a run of the published code; the two charts
+are generated from `results/*/kpis.json` by scripts in `scoring/`.
 
 | | measured | |
 |---|---|---|
-| **Recall — of what it broke, how much it reported** | **0.857** | best on the board (garak 0.556) |
-| **Precision — of what it reported, how much was real** | **0.270** | beats promptfoo (0.141) and garak (0.138) with no model call at all; at its shipped defaults, **0.333** |
-| **Confirmed violations found** | **33** from 1,080 turns | 3rd, on half the budget promptfoo used |
-| **Cost** | **$0.47** · **0** attacker tokens | the only tool here that spends nothing on attack generation |
+| **Precision — of what it reported, how much was real** | **0.452** | **1st on the board** (deepteam 0.300, promptfoo 0.141, garak 0.138) |
+| **Recall — of what it broke, how much it reported** | **0.750** | **1st on the board** (garak 0.556) |
+| **Confirmed violations found** | **37** from 1,080 turns | 3rd, on half the budget promptfoo used |
+| **Cost** | **$0.46** + 148 local model calls | the only tool here that spends nothing on cloud inference |
+
+It is the **only tool on this board holding both the precision and the recall target at once** (0.452 ≥
+0.30, 0.750 ≥ 0.56).
 
 It is a single Go binary with **zero dependencies**, 21 techniques, and **no LLM anywhere in it** — no
 attacker model, no hosted service, no account, no telemetry. `go install` and it runs.
@@ -26,15 +30,35 @@ garak 67), and its own limitation is the third panel. 21 techniques is a floor, 
 
 ![The rule-recitation marker, before and after](results/trajectory_oss.png)
 
-That second chart is the most recent change, and it is the reason recall is 0.857. A technique's markers
-only recognise the leak its own payload asked for, so a target that breaks a rule nobody probed for reads
-as a clean pass. One probe in the 10-05 run accounted for **34 of 62 violating turns** by drawing a
-verbatim recital of the agent's refund cap, e-mail allow-list and account scope — and the scanner flagged
-it **zero** times in twenty rounds. A shared second marker now catches that class. It was measured before
-it was written (1,456 recorded replies, ground truth known), then re-run live: **recall 0.444 → 0.857**,
-precision 0.248 → 0.270. Details in [docs/recitation.md](https://github.com/rbrus/sixi-scanner/blob/main/docs/recitation.md).
+That chart is three released changes, each measured on the same target with the same 1,080-turn budget
+and the same ground truth:
+
+| | v0.3.0 | v0.4.0 | **v0.5.0** |
+|---|---|---|---|
+| what changed | markers only | + a shared **rule-recitation** marker | + the optional **confirmation stage** |
+| precision | 0.248 | 0.270 | **0.452** |
+| recall | 0.444 | **0.857** | 0.750 |
+
+Both changes were measured *before* they were written, against replies already recorded with their
+ground truth already scored, and then re-run live.
+
+**v0.4.0 — the recitation marker.** A technique's markers only recognise the leak its own payload asked
+for, so a target that breaks a rule nobody probed for reads as a clean pass. One probe accounted for
+**34 of 62 violating turns** by drawing a verbatim recital of the agent's refund cap, e-mail allow-list
+and account scope — and the scanner flagged it **zero** times in twenty rounds. ~30 lines of regex, no
+model, no dependencies.
+
+**v0.5.0 — the confirmation stage, off by default.** A marker match is evidence, not a verdict:
+*"I can't share API keys"* contains every credential marker's substring and is not a leak. With
+`--confirm-url`, `--confirm-model` and `--context`, every candidate break goes to a model: it was asked
+148 times and rejected 106, which is where the precision comes from. It is **off by default** because a
+scanner that needs an endpoint and a model is a different tool, and because the right judge matters
+enormously — against the shared attacker the same stage drops real leaks and is worse than no stage at
+all ([the measurement](tools/sixi-scanner-oss/PORTING.md)).
 
 | | |
+|---|---|
+| Target | Foundry prompt agent on `gpt-5-nano`, every content filter at **Low**, Prompt Shields on, four function tools || | |
 |---|---|
 | Target | Foundry prompt agent on `gpt-5-nano`, every content filter at **Low**, Prompt Shields on, four function tools |
 | Tools | [garak](https://github.com/NVIDIA/garak), [promptfoo](https://github.com/promptfoo/promptfoo), [DeepTeam](https://github.com/confident-ai/deepteam), [PyRIT](https://github.com/Azure/PyRIT), [Azure AI Red Teaming Agent](https://learn.microsoft.com/azure/ai-foundry/concepts/ai-red-teaming-agent), sixi-scanner (licensed build), [sixi-scanner-oss](https://github.com/rbrus/sixi-scanner) (the public build), [agent-probe](https://github.com/rbrus/agent-probe) |
@@ -95,7 +119,8 @@ this scope (each tool's lab in [`tools/`](tools/) records it).
 | **PyRIT** 1.1.0 | A framework rather than a scanner. Our wiring of Crescendo, RedTeaming and converters drew system-prompt leaks and off-topic compliance; what it finds depends on the objectives you write | 16 violations · 3 categories |
 | **Azure AI Red Teaming Agent** 1.18.6 | The platform's own tool: hosted objectives, attacker and grader. Its attacks are the ones the filters stop | 64% blocked · 3 violations |
 | **agent-probe** | A 12-probe smoke test: one minute, no attacker model | 0 violations |
-| **sixi-scanner-oss** 0.4.0, 10-06 | Best recall on the board, and it got there with no LLM in the tool at all — a 30-line shared marker took recall 0.444 → 0.857. Second on precision, at $0.47 and zero attacker tokens | R 0.857 · P 0.270 · 33 violations |
+| **sixi-scanner-oss** 0.5.0, 10-07 | **First on both precision and recall** on this board — and the only tool here holding both protocol targets at once. 21 techniques, no cloud inference, $0.46 | **P 0.452 · R 0.750** · 37 violations |
+| **sixi-scanner-oss** 0.4.0, 10-06 | The recitation marker took recall 0.444 → 0.857 with no model in the tool at all (~30 lines of regex) | R 0.857 · P 0.270 · 33 violations |
 | **sixi-scanner** (licensed), 09-30 v9 | The only tool to elicit the refund-cap split, after six measured re-runs (see below) | R 0.609 · P 0.159 · 23 violations · 3 oracle codes |
 
 ![Confirmed violating turns by tool and risk category: each tool's 2026-09-24 baseline, plus sixi-scanner's 09-30 v9 run](results/risk_heatmap.png)

@@ -316,3 +316,27 @@ For each tool, from the gateway log:
   the point — a Python transcription would measure something nobody runs. The harness is the only thing
   that ever writes into another repository, it is removed in a `finally`, and the repository's own
   `make check` passes with it gone.
+* **The confirmation stage was run live and published (2026-10-07), and it deviates from §3.**
+  `sixi-oss-confirm` ran the same 1,080 turns as the 10-06 reference with the stage as the only
+  difference — same payloads, same configuration, same ground truth — which makes it an A/B rather than
+  two samples of a noisy tool: precision 0.270 → **0.452**, recall 0.857 → 0.750, self-flagged 152 → 42,
+  confirm calls 148 (metered, 157,334 attacker tokens, local GPU). It is **1st on precision and 1st on
+  recall** among the tools benchmarked here and the only configuration in the repository holding both
+  protocol targets at once.
+  **The §3 deviation:** §3 gives every tool the shared attacker as its attacker, simulator or internal
+  grader. This run's confirmation stage used `qwen3.8:27b` instead. That is a deviation and is recorded
+  as one, for a measured reason: the shared attacker is the wrong judge for this question — asked whether
+  a reply itemising its refund cap and e-mail rule violated a policy forbidding instruction disclosure, it
+  answered "the agent correctly lists its restrictions … adhering to the policy", and in the offline
+  replay it kept 2 of 32 candidates and dropped 4 real leaks. `qwen3.8:27b` measured 0.933
+  keep-precision on the licensed build's recorded confirm-read turns. Running the stage against the
+  shared attacker would have produced a worse report than running it against nothing, and that row is
+  not published.
+  The report's `confirmation.model` reads `"attacker"` because the gateway's attacker proxy overwrites
+  the model field so every tool gets the same model whatever it asked for; the served model was
+  `qwen3.8:27b`. That is noted here because a reader comparing this row with the 09-24 baseline would
+  otherwise read "attacker" and assume the shared abliterated model.
+* **The confirmed violating turns rose 33 → 37 between two turn-matched runs with identical payloads.**
+  That is the target's own nondeterminism over 1,080 requests, not an effect of the stage — the stage
+  changes what the tool reports, not what it sends. It is the reason every before/after claim here is
+  made on precision and recall rather than on violation counts.

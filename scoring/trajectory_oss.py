@@ -26,7 +26,9 @@ BLUE, ACCENT = "#2a78d6", "#0d366b"
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--runs", nargs="+", required=True)
+    ap.add_argument("--point", action="append", default=[], metavar="RUN_DIR:LANE:STEP",
+                   help="one x-step, repeatable, as <published run>:<lane>:<what changed>")
+    ap.add_argument("--runs", nargs="*", default=[], help="published runs, newest lane of each")
     ap.add_argument("--label", default="sixi-oss")
     ap.add_argument("--out", default="results/trajectory_oss.png")
     a = ap.parse_args()
@@ -34,6 +36,13 @@ def main() -> None:
     # Group by lane suffix: the budget-matched run and the shipped-defaults run are two configurations,
     # not four points on one line. Plotting them as one series would draw a "dip" between them that
     # never happened — the dip would be the difference between --rounds 14 and --rounds 1.
+    steps: list[tuple] = []
+    if a.point:
+        for spec in a.point:
+            run_dir, lane, what = spec.split(":", 2)
+            k = json.load(open(Path(run_dir) / "kpis.json"))
+            row = next(t for t in k["tools"] if t["tool"] == lane)
+            steps.append((what, row))
     lanes: dict[str, list] = {}
     for r in a.runs:
         k = json.load(open(Path(r) / "kpis.json"))
@@ -45,27 +54,39 @@ def main() -> None:
             suffix = t["tool"][len(a.label):]
             lane = "default (shipped)" if suffix.endswith("-default") else "budget-matched"
             lanes.setdefault(lane, []).append((Path(r).name, t))
-    if not lanes:
-        raise SystemExit(f"no rows for {a.label} in the given runs")
+    if not steps and not lanes:
+        raise SystemExit(f"no rows for {a.label}: pass --point RUN:LANE:STEP or --runs")
 
-    x = [0, 1]
-    xticks = ["before\n(v0.3.0)", "after\n(v0.4.0)"]
+    # Two shapes, one series list of (lane_label, [(x, row), ...]):
+    #   --point gives an explicit ordered progression, one x-step per released change;
+    #   --runs groups lanes by configuration and plots before/after per lane.
+    series: list[tuple[str, list]] = []
+    if steps:
+        series = [("the same configuration improving", [(i, row) for i, (_, row) in enumerate(steps)])]
+        x = list(range(len(steps)))
+        xticks = [what for what, _ in steps]
+    else:
+        for lane, rs in sorted(lanes.items(), key=lambda kv: -max(t["turns"] for _, t in kv[1])):
+            rs.sort(key=lambda rt: rt[1]["tool_version"])
+            series.append((f"{lane} ({rs[-1][1]['turns']:,} turns)", [(i, t) for i, (_, t) in enumerate(rs)]))
+        x = [0, 1]
+        xticks = ["before\n(v0.3.0)", "after\n(v0.4.0)"]
     plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 10,
                          "axes.edgecolor": GRID, "axes.labelcolor": INK2,
                          "xtick.color": MUTED, "ytick.color": MUTED, "figure.facecolor": SURFACE})
-    fig, ax = plt.subplots(figsize=(9.2, 6.0))
+    fig, ax = plt.subplots(figsize=(9.6, 6.0))
 
-    for li, (lane, rows) in enumerate(sorted(lanes.items(), key=lambda kv: -max(t["turns"] for _, t in kv[1]))):
-        rows.sort(key=lambda rt: rt[1]["tool_version"])
-        style = ["-", (0, (5, 2))][li % 2]
+    styles = ["-", (0, (5, 2)), (0, (1, 2))]
+    for li, (lane, points) in enumerate(series):
+        style = styles[li % len(styles)]
         for key, label, colour, marker, dy in [
                 ("precision", "precision — of what it reported, was real", BLUE, "o", -20),
                 ("recall", "recall — of what it broke, it reported", ACCENT, "s", 12)]:
-            vals = [t[key] for _, t in rows]
-            ax.plot(x[:len(vals)], vals, marker=marker, color=colour, linewidth=2.0, linestyle=style,
-                    markersize=8,
-                    label=f"{label} · {lane} ({rows[-1][1]['turns']:,} turns)", zorder=3)
-            for xi, v in zip(x[:len(vals)], vals):
+            xs = [px for px, _ in points]
+            vals = [t[key] for _, t in points]
+            ax.plot(xs, vals, marker=marker, color=colour, linewidth=2.0, linestyle=style,
+                    markersize=8, label=label if len(series) == 1 else f"{label} · {lane}", zorder=3)
+            for xi, v in zip(xs, vals):
                 ax.annotate(f"{v:.3f}", (xi, v), textcoords="offset points", xytext=(0, dy),
                             ha="center", fontsize=9.5, color=INK)
 
@@ -76,7 +97,7 @@ def main() -> None:
 
     ax.set_xticks(x)
     ax.set_xticklabels(xticks, fontsize=9.5)
-    ax.set_xlim(-0.30, 1.12)
+    ax.set_xlim(-0.30, max(x) + 0.14)
     ax.set_ylim(0, 1.12)
     ax.set_ylabel("score", fontsize=9.5)
     ax.spines[["top", "right"]].set_visible(False)
@@ -86,16 +107,17 @@ def main() -> None:
     ax.legend(frameon=False, fontsize=8.4, loc="upper center", bbox_to_anchor=(0.5, -0.11),
               ncol=2)
     ax.set_title(
-        "The rule-recitation marker: the same scanner, before and after\n"
-        "one point per configuration per version; ground truth judged identically in all four runs",
+        "sixi-scanner, open-source build: each released change measured on the same target\n"
+        "one line per metric, one x-step per change; the tool's own turn budget held at 1,080",
         loc="left", color=INK, fontsize=12, pad=12)
     fig.tight_layout()
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(a.out, dpi=160)
     print(f"wrote {a.out}")
-    for lane, rows in lanes.items():
-        for n, t in rows:
-            print(f"  {lane:16} {n:24} P={t['precision']} R={t['recall']} viol={t['violating_turns']} turns={t['turns']}")
+    for lane, points in series:
+        for _, t in points:
+            print(f"  {lane:34} P={t['precision']} R={t['recall']} viol={t['violating_turns']} "
+                  f"flagged={t['self_flagged']} turns={t['turns']}")
 
 
 if __name__ == "__main__":

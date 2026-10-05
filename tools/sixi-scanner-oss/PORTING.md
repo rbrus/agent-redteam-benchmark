@@ -103,10 +103,37 @@ Read honestly, this is not the win the projection promised. The earlier ceiling 
   configurations. For a scanner, a missed disclosure costs more than a false alarm, so whether this is
   worth enabling is a judgement about how the report will be read, not a number.
 
-**Recommendation, unchanged in order and now with evidence:** the recitation marker is in, unconditionally
-— it is ~30 lines, needs no model, and raised recall 0.444 → 0.857 at no precision cost. The screen is
-**available and off**, and on this target it is worth turning on only with a judge as good as
-qwen3.8:27b. Do not enable it against the shared attacker.
+### 2a. Validated live (2026-10-07) — and it changes the recommendation
+
+The replay above predicted the direction. The stage was then run for real, **turn-matched**: the same
+1,080 turns, the same payloads, the same configuration, with the stage as the only difference.
+
+| | stage OFF | **stage ON** | change |
+|---|---|---|---|
+| precision (turn-weighted) | 0.270 | **0.452** | **+0.182** |
+| recall (payload-weighted) | 0.857 | 0.750 | −0.107 |
+| self-flagged | 152 | **42** | −110 |
+| confirmed violations | 33 | 37 | +4 |
+| confirm calls · tokens | 0 | 148 · 157,334 | local GPU, no cloud cost |
+
+| | replay predicted | live |
+|---|---|---|
+| turn precision | 0.553 | **0.452** |
+| recall of the leaks it filed | 4 of 6 | **6 of 8** |
+
+So the offline method was directionally right and slightly optimistic on precision, and **the stage does
+clear the precision bar** — which nothing else in this tool's history did. The corrected recommendation:
+
+* **The recitation marker is in, unconditionally.** ~30 lines, no model, recall 0.444 → 0.857 at no
+  precision cost. Unambiguous.
+* **The confirmation stage is in, off by default, and worth turning ON with a judge as good as
+  qwen3.8:27b.** It costs a model call per candidate and about an eighth of recall, and buys a precision
+  of 0.452 — the difference between missing the 0.30 target and clearing it. Whether that trade is right
+  depends on who reads the report: a false alarm costs them a line, a missed disclosure costs them the
+  finding. The measurement is published so the judgement can be informed rather than guessed.
+* **Never enable it against the shared attacker.** Measured twice: it drops 4 of 6 real leaks,
+  including the most productive payload of the benchmark, on the reasoning that an agent reciting its
+  own limits was "adhering to the policy".
 
 
 ## 3. A screen that is free: nothing to port, but the negation list is worth extending
