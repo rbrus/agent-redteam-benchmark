@@ -62,7 +62,11 @@ def build_corpus(run: Path, label: str, out: Path) -> None:
 
 def main() -> None:
     run, label = Path(sys.argv[1]), sys.argv[2]
-    repo = os.environ.get("SIXI_SCANNER_REPO", "/home/rado/dev/rbrus-sixi-scanner")
+    # Where the scanner checkout lives. Deliberately not defaulted to a local path: this file
+    # is published, and a hard-coded home directory would leak the machine layout.
+    repo = os.environ.get("SIXI_SCANNER_REPO")
+    if not repo:
+        raise SystemExit("set SIXI_SCANNER_REPO to the sixi-scanner checkout")
     corpus = Path(os.environ.get("SIXI_REPLAY_CORPUS", "/tmp/sixi_replay_corpus.json"))
     verdicts = Path(os.environ.get("SIXI_REPLAY_VERDICTS", "/tmp/sixi_replay_verdicts.json"))
 

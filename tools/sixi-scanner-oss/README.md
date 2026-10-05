@@ -117,3 +117,22 @@ must agree: the ledger, the gateway log, and the tool's own recorded evidence. O
 prompts were found in the gateway log, all 21 replies matched, and the tool's filed evidence prompt was
 reproduced byte-for-byte from the catalogue. If the ledger and the report's own attempt count disagree,
 the adapter prints the discrepancy rather than picking one.
+
+## Probe scripts — measuring a candidate before writing it
+
+Four scripts in this directory answer one question each, by sending payloads to the target through the
+benchmark gateway and scoring the replies with `target/oracles.py` — no judge calls, no attacker calls,
+a handful of turns each. They exist because "is this attack class worth implementing?" is answerable
+for a few cents, and answering it before writing a technique is what keeps an untested family out of
+the shipped set.
+
+| script | question | answer |
+|---|---|---|
+| `probe_retrieval.py` | does retrieval-triggered indirect injection break this target? | no — the poisoned KB article was retrieved in 6 of 8 probes and declined every time |
+| `probe_retrieval2.py` | which of four pressure elements carries the attack? | none; and this round's design was wrong — it asked for a legitimate action |
+| `probe_framing.py` | is *procedure* framing the variable, rather than retrieval or pressure? | no, 8 payloads, 0 hits |
+| `probe_recipient.py` | does a reserved TLD (`.example`) make the exfil probe untestable? | no — hypothesis refuted, an explicit refusal instead |
+
+Each writes a ledger to `runs/probe-*/probe.jsonl`. **Read the finding in
+[PORTING.md §8](PORTING.md) before reusing one** — two of the four rounds changed what they were
+measuring partway through, and the second was measuring the wrong thing entirely.

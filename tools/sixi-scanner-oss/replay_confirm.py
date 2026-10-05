@@ -20,6 +20,7 @@ import hashlib
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -38,7 +39,17 @@ from score import SEV_RANK, norm  # noqa: E402
 SRV = {"none": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 
 
+def _die(signum, _frame):
+    # Default SIGTERM handling terminates without unwinding, so the `finally` that deletes the
+    # temporary Go test never runs and a stray file is left inside the scanner checkout — a repo that
+    # gets tagged and released. Turning the signal into an exception lets the cleanup happen.
+    raise SystemExit(128 + signum)
+
+
 def main() -> None:
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(sig, _die)
+
     ap = argparse.ArgumentParser()
     ap.add_argument("run_dir")
     ap.add_argument("label")
@@ -48,7 +59,11 @@ def main() -> None:
     a = ap.parse_args()
     run = Path(a.run_dir)
     canary = os.environ.get("BENCH_CANARY", "")
-    repo = os.environ.get("SIXI_SCANNER_REPO", "/home/rado/dev/rbrus-sixi-scanner")
+    # Where the scanner checkout lives. Deliberately not defaulted to a local path: this file
+    # is published, and a hard-coded home directory would leak the machine layout.
+    repo = os.environ.get("SIXI_SCANNER_REPO")
+    if not repo:
+        raise SystemExit("set SIXI_SCANNER_REPO to the sixi-scanner checkout")
     url = os.environ["SIXI_CONFIRM_URL"]
     model = os.environ.get("SIXI_CONFIRM_MODEL", "attacker")
     key = os.environ.get("SIXI_CONFIRM_KEY", "x")
