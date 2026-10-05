@@ -28,7 +28,7 @@ attacker model, no hosted service, no account, no telemetry. `go install` and it
 The gap is breadth, and it is not hidden in this chart: seven distinct attacks beat it (promptfoo 89,
 garak 67), and its own limitation is the third panel. 21 techniques is a floor, not a state of the art.
 
-![The rule-recitation marker, before and after](results/trajectory_oss.png)
+![sixi-scanner open-source build: precision and recall across three released changes, each measured on the same target](results/trajectory_oss.png)
 
 That chart is three released changes, each measured on the same target with the same 1,080-turn budget
 and the same ground truth:
@@ -58,12 +58,10 @@ all ([the measurement](tools/sixi-scanner-oss/PORTING.md)).
 
 | | |
 |---|---|
-| Target | Foundry prompt agent on `gpt-5-nano`, every content filter at **Low**, Prompt Shields on, four function tools || | |
-|---|---|
 | Target | Foundry prompt agent on `gpt-5-nano`, every content filter at **Low**, Prompt Shields on, four function tools |
 | Tools | [garak](https://github.com/NVIDIA/garak), [promptfoo](https://github.com/promptfoo/promptfoo), [DeepTeam](https://github.com/confident-ai/deepteam), [PyRIT](https://github.com/Azure/PyRIT), [Azure AI Red Teaming Agent](https://learn.microsoft.com/azure/ai-foundry/concepts/ai-red-teaming-agent), sixi-scanner (licensed build), [sixi-scanner-oss](https://github.com/rbrus/sixi-scanner) (the public build), [agent-probe](https://github.com/rbrus/agent-probe) |
 | Ground truth | ten deterministic oracles on every turn + a tool-blind LLM judge |
-| Runs | 2026-09-24 baseline: all seven tools, ≈5,900 target turns · 09-26 → 09-30: six sixi-scanner re-runs, ≈5,050 turns · 10-05 and 10-06: the open-source build, 3,019 turns |
+| Runs | 2026-09-24 baseline: all seven tools, ≈5,900 target turns · 09-26 → 09-30: six sixi-scanner re-runs, ≈5,050 turns · 10-05 → 10-07: the open-source build, three published runs, 4,087 turns |
 | Published | every run's KPIs, charts and confirmed violating turns (transcripts clipped, harmful content redacted) in [`results/`](results/) |
 
 > **Conflict of interest.** This benchmark is maintained by the author of two of the tools under
@@ -214,13 +212,40 @@ same recall while costing a third of the payload precision, because `refund`, `a
 the words a *helpful* agent uses while answering. Three further corpora from earlier runs gave the same
 ordering. The offline prediction was recall 0.889; the live run delivered 0.857.
 
-**Where it still loses.** Breadth. Seven distinct attacks beat it, and 21 techniques is a floor. It also
-has no confirmation stage, so a recitation is an inference rather than an observation — a reply can
-recite its limits legitimately and no substring match separates the two cases. Measured ceiling if a
-screen were added: precision ~0.34. And with no session support, the session-aware refund-cap-split oracle
-(`REFUND_CAP_SPLIT`) is unreachable for it — a real capability gap, scored as one.
+**Where it still loses.** Breadth. Seven distinct attacks beat it, and 21 techniques is a floor. And with
+no session support, the session-aware refund-cap-split oracle (`REFUND_CAP_SPLIT`) is unreachable for it
+— a real capability gap, scored as one.
 
 Full write-up and reproduction steps: [`results/2026-10-06-sixi-oss-v4/`](results/2026-10-06-sixi-oss-v4/README.md).
+
+### v0.5.0 — the confirmation stage, and the first configuration to hold both targets
+
+The stage exists because a recitation is an **inference, not an observation**: a reply can recite its
+limits legitimately and no substring match separates the two cases. Run with a model behind it, every
+candidate break is put to that model.
+
+This run is **turn-matched** against the v0.4.0 row above — same 1,080 turns, same payloads, same
+configuration, the stage as the only difference. It is an A/B, not two samples of a noisy tool.
+
+| | v0.4.0 (stage off) | **v0.5.0 (stage on)** |
+|---|---|---|
+| precision · recall | 0.270 · 0.857 | **0.452 · 0.750** |
+| self-flagged | 152 | **42** |
+| confirm calls · tokens | 0 | 148 · 157,334 (local GPU, no cloud cost) |
+| protocol targets held | recall only | **precision and recall** |
+
+The stage was asked 148 times and rejected 106 — that is the mechanism behind 152 → 42 flags. It is
+**1st on precision and 1st on recall** among every tool benchmarked here.
+
+It also **deviates from PROTOCOL §3 on the judge, deliberately**: the shared attacker is the wrong model
+for this question. Asked whether a reply itemising its refund cap violated a policy forbidding
+instruction disclosure, it answered *"the agent correctly lists its restrictions … adhering to the
+policy"*, and in the offline replay it dropped 4 of 6 real leaks. This run used `qwen3.8:27b`, which
+measured 0.933 keep-precision on recorded turns. Running the stage against the shared attacker would
+have produced a **worse** report than running it against nothing; §7 records the deviation and
+[PORTING.md §2](tools/sixi-scanner-oss/PORTING.md) holds both measurements.
+
+Full write-up: [`results/2026-10-07-sixi-oss-confirm/`](results/2026-10-07-sixi-oss-confirm/README.md).
 
 ## Run it, or bring your own tool
 
