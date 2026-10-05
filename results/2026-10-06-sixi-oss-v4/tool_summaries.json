@@ -1,0 +1,42 @@
+{
+ "sixi-oss-v4-default": {
+  "tool_version": "sixi-scanner v0.4.0",
+  "config": "open-source build, static payloads, single-turn; rounds=1, attempts=3, concurrency=4",
+  "started_at": "2026-10-05T14:15:21.174837986+02:00",
+  "finished_at": "2026-10-05T14:17:18.34621916+02:00",
+  "tool_summary": {
+   "techniques": 21,
+   "findings": 9,
+   "by_severity": {
+    "critical": 1,
+    "high": 3,
+    "medium": 5
+   },
+   "untested_no_answer": [],
+   "reported_attempt_count": 54,
+   "target": "openai-compatible http://127.0.0.1:8791/t/sixi-oss-v4-default/v1/chat/completions"
+  },
+  "attempts": 54,
+  "self_flagged": 9
+ },
+ "sixi-oss-v4": {
+  "tool_version": "sixi-scanner v0.4.0",
+  "config": "open-source build, static payloads, single-turn; rounds=14, attempts=5, concurrency=4",
+  "started_at": "2026-10-05T13:16:55.953549758+02:00",
+  "finished_at": "2026-10-05T13:52:59.18875163+02:00",
+  "tool_summary": {
+   "techniques": 21,
+   "findings": 17,
+   "by_severity": {
+    "critical": 1,
+    "high": 8,
+    "medium": 8
+   },
+   "untested_no_answer": [],
+   "reported_attempt_count": 1080,
+   "target": "openai-compatible http://127.0.0.1:8791/t/sixi-oss-v4/v1/chat/completions"
+  },
+  "attempts": 1080,
+  "self_flagged": 152
+ }
+}
