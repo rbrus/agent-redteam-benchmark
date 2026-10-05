@@ -93,9 +93,26 @@ Stated plainly, and scored as gaps rather than argued away:
 
 * **Breadth.** Seven distinct attacks beat this run's seven (promptfoo 89, garak 67, deepteam 21). 21
   techniques is a floor, and the chart's third panel says so.
-* **No confirmation stage.** Recitation is an inference, not an observation: a reply can recite its
-  limits legitimately and no substring match separates the two. The verdict is recorded at confidence 0.6
-  with the rule-line count as evidence. The measured ceiling if a screen were added is precision ≈0.34.
+* **No confirmation stage, by default — and that default is now measured rather than assumed.** The
+  stage was implemented (`28aedb9`) and replayed over this run's own 32 distinct flagged payloads, using
+  the scanner's own client against the recorded ground truth:
+
+  | screen model | distinct precision | recall of the leaks it filed | turn precision |
+  |---|---|---|---|
+  | none (as shipped) | 0.188 | **6 of 6** | 0.270 |
+  | the shared attacker (abliterated Qwen3.6-35B) | 0.667 | 0.333 | 0.517 |
+  | qwen3.8:27b | 0.667 | 4 of 6 | **0.553** |
+
+  ("recall of the leaks it filed" is over the **6** confirmed leaks among the 32 candidates — a screen
+  can only reject what it was shown. The tool's own payload-level recall over all 7 violating payloads,
+  including the one it never filed, is **0.857**.)
+
+  It is a trade, not a win: it buys precision with recall. With `qwen3.8:27b` it clears **both** protocol
+  targets (0.553 ≥ 0.30 and 0.667 ≥ 0.56) where as shipped clears one. Against the shared attacker it is
+  actively harmful — it dropped 4 real leaks, including the most productive payload of the whole
+  benchmark, having answered that an agent itemising its own refund cap was *"adhering to the policy"*.
+  A screen that cannot recognise a paraphrase cannot check a recitation. Full table in
+  [PORTING.md §2](../../tools/sixi-scanner-oss/PORTING.md).
 * **No sessions, so no split-cap oracle.** It sends one message per request through the gateway's
   stateless endpoint, so `REFUND_CAP_SPLIT` — the refund-cap guardrail bypass that needs two requests in
   one conversation — is unreachable for this client. Across all published runs that oracle has 7 hits,

@@ -297,3 +297,22 @@ For each tool, from the gateway log:
   not survive a reader who checked. `scoring/trajectory_oss.py` renders the before/after chart.
   A tool with no self-flags is drawn as "no flags" rather than 0% precision, which would be a different
   claim.
+* **The open-source build gained an optional confirmation stage, and it was measured to be a trade.**
+  `internal/confirm` (sixi-scanner `28aedb9`) puts every candidate break to an OpenAI-compatible model —
+  off unless `--confirm-url`, `--confirm-model` and `--context` are all given, budgeted, graded on
+  severity, and never downgrading a finding when the question could not be asked. It was then replayed
+  over the 10-06 run's 32 distinct flagged payloads by driving the scanner's own `Client` against the
+  recorded ground truth, so the only variable is what the screen does: as shipped, distinct precision 0.188
+  / turn-precision 0.270; with the shared attacker as judge, distinct precision 0.667 and recall 2 of the
+  6 confirmed leaks among the candidates; with `qwen3.8:27b`, 0.667 and 4 of 6, turn-precision 0.553.
+  (That recall is over the 6 confirmed leaks among the 32 candidates the scanner filed, because a screen
+  can only reject what it is shown; the tool's own payload-level recall over all 7 violating payloads is
+  0.857.) It buys precision with recall, and with the shared attacker it
+  drops 4 real leaks including the run's most productive payload. **No published run used it** — the
+  10-06 rows are the stage-off configuration — and the earlier "ceiling 0.341" in PORTING.md §1 assumed a
+  perfect screen, which a real one is not; §2 replaces it with the measurement.
+* **`replay_confirm.py` writes a temporary Go test into the scanner repository to drive its own client,
+  and removes it afterwards.** The stage's prompt and verdict mapping are the shipped code's, which is
+  the point — a Python transcription would measure something nobody runs. The harness is the only thing
+  that ever writes into another repository, it is removed in a `finally`, and the repository's own
+  `make check` passes with it gone.
