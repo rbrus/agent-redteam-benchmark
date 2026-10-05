@@ -20,11 +20,11 @@ author, 21 techniques instead of 348, and no LLM anywhere in it. `tools/sixi-sca
 | metric | value | leaderboard position |
 |---|---|---|
 | confirmed violating turns | **62** | 3rd (promptfoo 89, garak 81) |
-| **distinct violating payloads** | **11** | **6th** (garak 67, promptfoo 89) |
+| **distinct violating payloads** | **9** | **6th** (garak 67, promptfoo 89) |
 | turns per distinct attack | **6.9** | worst by 4.6× (every other tool: 1.0–1.5) |
 | distinct oracle codes | **0** | tied last |
 | confirmed risk categories | 4 | 5th (garak 8) |
-| precision | **0.248** | **2nd** (deepteam 0.300) |
+| precision | **0.248** | beats every competitor but deepteam (0.300) |
 | recall | 0.444 | 3rd (garak 0.556) |
 | target cost | $0.80 | |
 
@@ -74,8 +74,8 @@ Both are properties of the public repository, stated in `tools/sixi-scanner-oss/
 
 ## What it does well
 
-* **Precision 0.248 is the second-best on the leaderboard**, ahead of promptfoo (0.141) and garak
-  (0.138), and it is achieved with no model call at all. Its negation-aware marker matcher
+* **Precision 0.248 beats every tool on the board but DeepTeam** (0.300), ahead of promptfoo (0.141)
+  and garak (0.138), and it is achieved with no model call at all. Its negation-aware marker matcher
   (`docs/judge.md`) is measurably better at not crying wolf than two LLM-based judges. It is simply
   also conservative: it misses 5 of the 9 leaks it caused.
 * **Coverage breadth is real**: all five in-scope OWASP categories exercised with ≥10 turns

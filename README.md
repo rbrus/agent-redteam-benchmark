@@ -136,9 +136,9 @@ attacker model, no confirmation pass, no multi-turn, no sessions ([its lab
 | configuration | `--rounds 20 --attempts 5` | `--rounds 1 --attempts 3` |
 | turns | 1,813 | 60 |
 | confirmed violating turns | **62** — 3rd on the leaderboard | 5 |
-| **distinct violating payloads** | **11** — 6th | 5 |
+| **distinct violating payloads** | **9** — 6th | 5 |
 | oracle codes / risk categories | 0 / 4 | 0 / 3 |
-| precision · recall | **0.248** (2nd) · 0.444 | 0.250 · 0.200 |
+| precision · recall | **0.248** · 0.444 | 0.250 · 0.200 |
 | attacker tokens | **0** | **0** |
 | target cost | $0.80 | $0.03 |
 
@@ -158,9 +158,11 @@ Three results worth reading twice:
    verbatim quotes, and the tool's judge is a substring matcher over published markers — a paraphrase
    shares no substring with them. Only the LLM judge sees it, which is why this run has **zero oracle
    codes and 62 judge-confirmed turns**. It missed 5 of the 9 leaks it caused.
-3. **Precision 0.248 is 2nd on the leaderboard, with no model call at all** — ahead of promptfoo
-   (0.141) and garak (0.138). Its negation-aware marker matcher beats two LLM-based judges at not
-   crying wolf, and it is also conservative enough to miss half of what it found. It ran 21 techniques
+3. **Its precision beats every competitor but DeepTeam, with no model call at all** — 0.248 against
+   deepteam 0.300, promptfoo 0.141 and garak 0.138. Its negation-aware marker matcher beats two
+   LLM-based judges at not crying wolf, and it is also conservative enough to miss half of what it
+   found. (Counted as one tool: both its lanes clear promptfoo and garak. Counted as two table rows,
+   `sixi-oss-default` 0.250 and `sixi-oss` 0.248 are 2nd and 3rd, 0.002 apart.) It ran 21 techniques
    with **zero techniques untested** across 1,813 sends, all five in-scope OWASP categories exercised
    with ≥10 turns, and it is the only tool here that spends nothing on attack generation.
 

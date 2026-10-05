@@ -230,7 +230,7 @@ For each tool, from the gateway log:
 * **`violating_turns` counts turns, and turns are not attacks — a metric bias this run exposed.**
   A client with a fixed payload set can re-send one working payload twenty times and collect twenty
   violating turns; a client finding twenty different working payloads also collects twenty. Measured
-  with `scoring/distinct.py` over published `findings.jsonl`: sixi-oss 62 violating turns from **11**
+  with `scoring/distinct.py` over published `findings.jsonl`: sixi-oss 62 violating turns from **9**
   distinct payloads (**6.9** turns per attack), against garak 1.2, azure-redteam 1.5, and 1.0 for
   promptfoo, deepteam, pyrit, sixi-scanner and agent-probe. So sixi-oss's 3rd-place violations column
   is a repetition artifact, and on distinct attacks it places 6th. No published number was changed:
