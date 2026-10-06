@@ -1,5 +1,7 @@
 # Agent Red-Team Benchmark
 
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE) [![Write-up](https://img.shields.io/badge/write--up-rbrus.github.io-orange)](https://rbrus.github.io/agent-redteam-benchmark-findings/) [![Cite](https://img.shields.io/badge/cite-CITATION.cff-lightgrey)](CITATION.cff)
+
 **Seven AI red-teaming tools against one real Microsoft Foundry agent, behind Azure's strictest
 content safety. Scored from the wire, not from the tools' own reports.**
 

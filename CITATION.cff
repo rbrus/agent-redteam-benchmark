@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this benchmark, its method or its data, please cite it as below."
+title: "Agent Red-Team Benchmark: seven AI red-teaming tools against one Microsoft Foundry agent, scored from the wire"
+authors:
+  - family-names: Brus
+    given-names: Radoslaw
+repository-code: "https://github.com/rbrus/agent-redteam-benchmark"
+url: "https://rbrus.github.io/agent-redteam-benchmark-findings/"
+license: Apache-2.0
+date-released: 2026-10-06
+keywords:
+  - AI security
+  - red teaming
+  - LLM agents
+  - prompt injection
+  - benchmark
+  - evaluation
