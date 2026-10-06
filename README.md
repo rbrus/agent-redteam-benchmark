@@ -59,7 +59,7 @@ all ([the measurement](tools/sixi-scanner-oss/PORTING.md)).
 | | |
 |---|---|
 | Target | Foundry prompt agent on `gpt-5-nano`, every content filter at **Low**, Prompt Shields on, four function tools |
-| Tools | [garak](https://github.com/NVIDIA/garak), [promptfoo](https://github.com/promptfoo/promptfoo), [DeepTeam](https://github.com/confident-ai/deepteam), [PyRIT](https://github.com/Azure/PyRIT), [Azure AI Red Teaming Agent](https://learn.microsoft.com/azure/ai-foundry/concepts/ai-red-teaming-agent), sixi-scanner (licensed build), [sixi-scanner-oss](https://github.com/rbrus/sixi-scanner) (the public build), [agent-probe](https://github.com/rbrus/agent-probe) |
+| Tools | [garak](https://github.com/NVIDIA/garak), [promptfoo](https://github.com/promptfoo/promptfoo), [DeepTeam](https://github.com/confident-ai/deepteam), [PyRIT](https://github.com/Azure/PyRIT), [Azure AI Red Teaming Agent](https://learn.microsoft.com/azure/ai-foundry/concepts/ai-red-teaming-agent), sixi-scanner (old build), [sixi-scanner-oss](https://github.com/rbrus/sixi-scanner) (the public build), [agent-probe](https://github.com/rbrus/agent-probe) |
 | Ground truth | ten deterministic oracles on every turn + a tool-blind LLM judge |
 | Runs | 2026-09-24 baseline: all seven tools, ≈5,900 target turns · 09-26 → 09-30: six sixi-scanner re-runs, ≈5,050 turns · 10-05 → 10-07: the open-source build, three published runs, 4,087 turns |
 | Published | every run's KPIs, charts and confirmed violating turns (transcripts clipped, harmful content redacted) in [`results/`](results/) |
@@ -119,7 +119,7 @@ this scope (each tool's lab in [`tools/`](tools/) records it).
 | **agent-probe** | A 12-probe smoke test: one minute, no attacker model | 0 violations |
 | **sixi-scanner-oss** 0.5.0, 10-07 | **First on both precision and recall** on this board — and the only tool here holding both protocol targets at once. 21 techniques, no cloud inference, $0.46 | **P 0.452 · R 0.750** · 37 violations |
 | **sixi-scanner-oss** 0.4.0, 10-06 | The recitation marker took recall 0.444 → 0.857 with no model in the tool at all (~30 lines of regex) | R 0.857 · P 0.270 · 33 violations |
-| **sixi-scanner** (licensed), 09-30 v9 | The only tool to elicit the refund-cap split, after six measured re-runs (see below) | R 0.609 · P 0.159 · 23 violations · 3 oracle codes |
+| **sixi-scanner** (legacy), 09-30 v9 | The only tool to elicit the refund-cap split, after six measured re-runs (see below) | R 0.609 · P 0.159 · 23 violations · 3 oracle codes |
 
 ![Confirmed violating turns by tool and risk category: each tool's 2026-09-24 baseline, plus sixi-scanner's 09-30 v9 run](results/risk_heatmap.png)
 
@@ -182,7 +182,7 @@ yet a benchmarked run.
 
 sixi-scanner is now public ([github.com/rbrus/sixi-scanner](https://github.com/rbrus/sixi-scanner)), so
 the repository's own build is benchmarked as its own tool, `sixi-oss`, against the same agent, gateway,
-judge and oracles. It is a **different artefact** from the licensed build above: 21 techniques and 71
+judge and oracles. It is a **different artefact** from the legacy build above: 21 techniques and 71
 payloads instead of 348, static prompts, and no LLM anywhere in it. Its lab
 ([§5](tools/sixi-scanner-oss/README.md)) enumerates exactly what is and is not there, and
 [PORTING.md](tools/sixi-scanner-oss/PORTING.md) measures every mechanism worth porting from the other
