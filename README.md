@@ -279,3 +279,7 @@ unified-judge verdicts.
 | [`tools/sixi-scanner/calibration/`](tools/sixi-scanner/calibration/) | the offline confirmation-judge measurements, reproducible from the repository |
 | [`tools/sixi-scanner-oss/`](tools/sixi-scanner-oss/) | the open-source build's lab, its result parser, and [PORTING.md](tools/sixi-scanner-oss/PORTING.md): every mechanism measured for porting from the other codebases here |
 | [`docs/`](docs/) | [PROTOCOL.md](docs/PROTOCOL.md) (the rules, and §7: every change made after a run) · [LAB-00-target.md](docs/LAB-00-target.md) (the build guide) |
+
+## Licence
+
+Apache 2.0, see [LICENSE](LICENSE). Code, configs, oracles and published results alike. Each tool under test keeps its own licence.
