@@ -34,8 +34,22 @@ def main() -> None:
         rows += [relabel(t) for t in json.load(open(run / "kpis.json"))["tools"] if keep(t["tool"])]
         findings += [relabel(f) for f in map(json.loads, open(run / "findings.jsonl")) if keep(f["tool"])]
 
+    # The open-source build is a separate lane (sixi-oss-*); its newest run is the current release.
+    oss = max((kp.parent for kp in root.glob("*-sixi-oss*/kpis.json")), key=lambda d: d.name, default=None)
+    oss_name = ""
+    if oss:
+        t = json.load(open(oss / "kpis.json"))["tools"][0]
+        oss_name = t.get("tool_version") or t["tool"]
+        rows.append({**t, "tool": oss_name})
+        findings += [{**f, "tool": oss_name} for f in map(json.loads, open(oss / "findings.jsonl"))
+                     if f["tool"] == t["tool"]]
+    rename = {f"{PATH_TOOL} {run_label(BASELINE)}": "sixi-scanner legacy 09-24",
+              f"{PATH_TOOL} {run_label(latest.name)}": f"sixi-scanner legacy {run_label(latest.name)}"}
+    rows = [{**r, "tool": rename.get(r["tool"], r["tool"])} for r in rows]
+    findings = [{**f, "tool": rename.get(f["tool"], f["tool"])} for f in findings]
     heatmap([r["tool"] for r in sorted(rows, key=lambda r: -r["violating_turns"])], findings, out,
-            subtitle=f"Each tool's 09-24 baseline run; {PATH_TOOL} also at its latest run, {run_label(latest.name)}.")
+            subtitle=f"Each tool's 09-24 baseline run; the legacy {PATH_TOOL} also at {run_label(latest.name)}"
+                     + (f", and the current open-source {oss_name}." if oss else "."))
     print(f"wrote {out}")
 
 

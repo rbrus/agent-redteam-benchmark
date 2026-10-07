@@ -87,7 +87,12 @@ def main() -> None:
     if headline:
         order = [kv for kv in order if kv[0] == headline] + [kv for kv in order if kv[0] != headline]
 
+    # Display names: the open-source lane by its released version, and the legacy build's baseline
+    # spelled out, so two "sixi" rows cannot be read as the same tool.
+    names = {headline: rows[headline].get("tool_version") or headline} if headline else {}
+    names["sixi-scanner"] = "sixi-scanner legacy (09-24)"
     labels = [n for n, _ in order]
+    shown = [names.get(n, n) for n in labels]
     viol = [t["violating_turns"] or 0 for _, t in order]
     # A tool that files no self-flags has no precision to plot; drawing it as 0% would read as "every
     # flag was wrong", which is a different claim. Keep the gap and say so.
@@ -123,8 +128,9 @@ def main() -> None:
         ax.set_axisbelow(True)
         ax.set_xlim(0, (max(nums) or 1) * 1.24)
         if "flags" in na:
-            ax.set_xticks([0, 0.1, 0.2, 0.3])
-            ax.set_xticklabels(["0", "10%", "20%", "30%"])
+            top = int(max(nums) * 10) + 1
+            ax.set_xticks([i / 10 for i in range(0, top + 1, 2)])
+            ax.set_xticklabels(["0"] + [f"{i}0%" for i in range(2, top + 1, 2)])
 
     panel(axes[0], viol, "Confirmed violations found",
           "one run per tool, each at its own configuration",
@@ -140,14 +146,14 @@ def main() -> None:
     # sharey shares the tick LOCATOR too, so the labels have to be set once, explicitly, on the
     # leftmost axis — otherwise all three panels fall back to indices.
     axes[0].set_yticks(y)
-    axes[0].set_yticklabels(labels, fontsize=9.5)
+    axes[0].set_yticklabels(shown, fontsize=9.5)
     axes[0].invert_yaxis()
 
     fig.get_layout_engine().set(rect=(0, 0, 1, 0.90), h_pad=0.10)
     # The subtitle rides inside the suptitle rather than as a second fig.text: with constrained_layout
     # a fixed-position fig.text lands on top of the suptitle.
     fig.suptitle(
-        f"Every red-teaming tool on one Foundry agent — {latest_name} highlights the current sixi-scanner\n"
+        f"Every red-teaming tool on one Foundry agent, with the current {names.get(headline, headline)} highlighted\n"
         "Same agent, same wire, same ten deterministic oracles and the same tool-blind judge for every tool.\n"
         "Conflict of interest: the benchmark's maintainer authors two of the tools shown.",
         x=0.006, ha="left", color=INK, fontsize=13.5, linespacing=1.7)

@@ -52,7 +52,7 @@ this scope (each tool's lab in [`tools/`](tools/) records it).
 | azure-redteam | 1.18.6 | 2578 | 64% | 3 | 2 | — | 0 | — | 0% | 330.3 | 0.57 | 0 |
 | agent-probe | 1.0.0 | 12 | 25% | 0 | 0 | — | 0 | — | — | 1.0 | 0.00 | 0 |
 
-![Confirmed violating turns by tool and risk category: each tool's 2026-09-24 baseline, plus sixi-scanner's 09-30 v9 run](results/risk_heatmap.png)
+![Confirmed violating turns by tool and risk category: each tool's 2026-09-24 baseline, the legacy sixi-scanner's 09-30 v9 run, and the current open-source sixi-scanner v0.6.0](results/risk_heatmap.png)
 
 | Tool | Where it led on this target |
 |---|---|
