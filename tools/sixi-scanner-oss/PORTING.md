@@ -261,6 +261,47 @@ plain text. Both are real disclosures and both are invisible to the oracle set, 
 canary, two verbatim system-prompt markers, or foreign PII. A general marker for *internal processing
 instructions echoed into a reply* would be legitimate; one that matches this notice is not.
 
+## 9. False action claims — the largest confirmed family on the baseline, worth porting
+
+Asked what is worth bringing back from the licensed build, this is the answer. Measured, not asserted.
+
+`false_action_claim` is **58 confirmed turns on the 09-24 baseline** — second only to off-topic
+compliance (68) and larger than `system_prompt_leak` (52), which this build *does* detect. promptfoo
+alone owns 51 of the 58; deepteam 4, garak 2, pyrit 1. **The open-source build's largest category is
+system_prompt_leak; it has never once produced this one.**
+
+The distinction that matters is inside the category. The turns in this build's own runs that the judge
+scored `false_action_claim` are all *environmental* sign-offs — "This environment is secure and
+audit-ready" — which `probe.llm09.false-certification` catches and flags. promptfoo's 51 were the other
+kind: a claim about **an action**. "I've filed the claim for ACC-1001 with the claims partner", with no
+tool call behind it.
+
+**Measured on the live target.** Six laundering payloads (see `probe_laundering.py`), scored with the
+real judge: **3 of 6 are confirmed violations, high/high/medium, all `false_action_claim`.** They are
+induced by payloads that name no address and defer the recipient, so the agent narrates completing a
+filing it never performed.
+
+**And the check can be deterministic, which is the part the licensed build says it cannot do.**
+`coded_false_claim.go` states that "whether the claim is TRUE is a property of the tool trace, which
+this judge cannot see", so its payloads are shaped to make a true claim improbable. This build holds
+the tool calls for every turn it makes, so a claim of a completed action with no matching tool call is
+mechanically decidable — no model, no API cost, no false positive from a claim that happened to be true.
+
+Two caveats, stated before anyone builds it:
+* **6 payloads is a small sample**, and the judge is the arbiter. The category is unambiguous and the
+  mechanism is clear, but 3/6 is not a rate.
+* The **elicitation** half is unmeasured. Every false-action-claim violation in this build's existing
+  runs came from payloads it already sends, and it flagged all of them — because those were the
+  environmental kind. The *action* kind needs new payloads (the licensed build's three framings) or the
+  laundering shape measured above. What is measured is that the laundering shape works; what is not
+  measured is whether the licensed build's elicitation frames would work here too.
+
+Volumewise this is the largest untouched confirmed category on the target, so it is worth more than
+the other candidates: `unicode_smuggling.go` (tag-plane, genuinely uncovered, but nothing in the oracle
+set scores an invisible character), `tiered.go` (13 techniques on an ordered marker chain — a scoring
+refinement for the 8 false positives that remain), and `coded_recipient_laundering.go` for oracle codes
+(measured null: 0 of 6, see below).
+
 ## Recommendation
 
 | candidate | measured effect | verdict |
@@ -272,6 +313,8 @@ instructions echoed into a reply* would be legitimate; one that matches this not
 | multi-turn / sessions | unlocks a 7-turn oracle class, 1 of 10 | **defer** — architectural |
 | coded payload families | unmeasurable; 9/9 breaks were plain text | **defer** — one sibling per confirmed shape |
 | retrieval-triggered indirect injection | 28 probe payloads, 4 rounds, **0 oracle hits** | **do not port** — §8 |
+| recipient laundering (for oracle codes) | 6 payloads, **0 oracle hits** | **do not port for that** — §9 |
+| false action claims | 58 confirmed turns on the baseline, this build **0**; 3 of 6 laundering probes confirmed | **port** — §9 |
 | laya-as-judge | cannot run on this host | **not applicable** |
 
 Both ports should be validated the way this note validates them: measure the candidate on recorded sends
