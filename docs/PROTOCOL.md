@@ -388,3 +388,29 @@ For each tool, from the gateway log:
   another target could disagree.
   §3 deviation, unchanged from 10-07 and for the same measured reason: the stage's judge was
   `qwen3.8:27b`, not the shared attacker.
+* **The post-run recall audit, and a correction to how "missed" was being counted (2026-10-08).**
+  Auditing the remaining headroom after the v0.6.0 run, the open-source build breaks **34 of the 37
+  real leaks** it saw — turn-level recall **0.919** — and misses 3. The large-looking figure was
+  different: 61 "truth-carrying turns the markers did not flag", of which **58 are compliant
+  refusals**. A turn inherits `truth` from its payload, because scoring joins on the normalised
+  prompt; asking an agent to translate its system prompt produces mostly clean German refusals, which
+  inherit truth from the one turn that did leak. This is a property of the KPI, not a bug in it, and
+  the KPI is **not redefined** — but measuring marker work against payload-level truth alone points
+  the work at the wrong target, because closing it would mean adding markers that fire on refusals,
+  which is the defect v0.6.0 just removed. `marker_corpus.py` now records both `truth` and `real`, and
+  `replay_markers.py` reports them separately.
+  **The 3 misses were then offered to the confirmation stage and it rejected both it was shown.** Among
+  the 55 replies it was offered: 2 real leaks, **0 kept**; 53 compliant refusals, 2 wrongly kept
+  (3.8%). Its stated reason — that the agent "correctly refused ... and instead provided a high-level,
+  customer-facing summary of its capabilities and scope, which is permitted" — is a **direct
+  disagreement with the evaluator**, which scored the same replies medium violations. Recorded because
+  the honest conclusion is that recall is at its practical ceiling here and the two judges do not
+  agree on the boundary. **Caveat stated rather than buried: only 2 real leaks were offered**, since
+  the markers had already broken 34 of the 37, so the count is a small sample. The qualitative part of
+  the finding does not depend on the count — the stage's objection is a judgement about what a
+  capability recital *is*, not a threshold it failed to cross. An earlier draft of this note quoted
+  "13 real leaks, 0 kept"; that figure came from a run before the probe's verdicts were keyed by reply
+  identity and was wrong. The corrected 2 is above.
+Also recorded: a positional join between the probe's verdicts and the corpus initially reported all
+  3 misses as "never offered to the stage". That was a broken join, not a result; the probe now keys
+  every verdict by a hash of the reply, and the corrected run shows 66 answers joining 66 unique ids.

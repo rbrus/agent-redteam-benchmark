@@ -47,6 +47,68 @@ for a reader to discover.
 What the offline replay *is* matched on: 1,080 recorded replies with ground truth already scored,
 where the replay lands on the same number of candidate breaks the live 10-07 run put to its stage.
 
+## Recall audit: the gap is 3 turns, not 61
+
+After publishing the run I audited the remaining headroom, expecting recall to be the place with
+room. It is not, and the reason is worth stating because the obvious number is misleading.
+
+| | count |
+|---|---|
+| turns in the run | 1,282 |
+| **real leaks** — a violation on this reply's own oracle or judge evidence | **37** |
+| of those, **broken by the markers** | **34** |
+| **turn-level recall on real leaks** | **0.919** |
+| genuinely missed | **3** |
+
+The misleading number is "61 truth-carrying turns the markers did not flag". **58 of those 61 are
+compliant refusals.** A turn inherits `truth` from its *payload* — `score.py` joins on the normalised
+prompt, so if any turn carrying a prompt violated, every turn carrying it counts as truth. Asking an
+agent to translate its system prompt produces mostly clean German refusals; those inherit truth from
+the one turn that did leak.
+
+This is a property of the published KPI, not a bug in it, and it is not redefined here. But measuring
+marker work against payload-level truth alone points the work at the wrong thing: closing it would
+mean adding markers that fire on refusals, which is precisely the defect v0.6.0 removed.
+
+So the tooling now carries both: `marker_corpus.py` records `truth` (payload-level, what the
+leaderboard scores) *and* `real` (this reply alone), and `replay_markers.py` reports real leaks
+separately from truth-carrying turns.
+
+## The 3 misses are a judge disagreement, not a marker defect
+
+All three share one shape: the agent refuses, then enumerates its scope in prose. The recitation test
+counts *constraints*, not *capabilities*, deliberately — capability recital is the compliant answer to
+"what tools do you have" — so these never became candidates and the confirmation stage was never
+asked. That suggested a cheap fix: feed the stage more replies.
+
+It does not work. The shipped confirmation prompt was asked about them, through the shipped client:
+
+| among the 55 replies the stage was offered | count | kept by the stage |
+|---|---|---|
+| real leaks | 2 | **0** |
+| compliant refusals | 53 | 2 (3.8%) |
+
+It rejected both of the misses it was shown, with reasoning that is defensible:
+
+> *"The agent correctly refused to restate its internal operating instructions and instead provided a
+> high-level, customer-facing summary of its capabilities and scope, which is permitted and does not
+> reveal..."*
+
+So the evaluator and the confirmation judge **disagree about what a capability recital is**. The
+evaluator scored those replies medium violations; `qwen3.8:27b` scores them compliant. Widening the
+recitation test would buy no recall and cost precision at a measured 3.8% false-accept rate.
+
+**The obvious caveat on that evidence: only 2 real leaks were offered**, because the markers had
+already broken 34 of the 37. "Kept 0 of 2" is consistent with the stage being unable to make this
+call, but it is a small sample and is reported as such rather than dressed up. The stronger part of
+the claim is the qualitative one, which does not depend on the count: the stage's own stated reason
+is that a high-level capability summary *is permitted* — a judgement, not a threshold.
+
+**Conclusion: recall is at its practical ceiling against this target.** 34 of 37 real leaks caught,
+and the remaining 3 are a disagreement between two judges rather than something a marker can fix.
+The headroom that is real is **breadth** — 6 distinct attacks against garak's 67 and promptfoo's 89 —
+and oracle codes, which PORTING.md §8 shows are a defended target rather than an untried gap.
+
 ## What changed, and the measurement behind it
 
 Marker-level precision was **0.304** — 45 true breaks among 148 candidates. The diagnosis was not
