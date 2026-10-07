@@ -155,6 +155,15 @@ that they did was wrong twice.
   lost: the five replies that stopped being flagged were five the benchmark's own judge had recorded
   as compliant. Test coverage 83.3% → 90.0%, the largest gap being the v0.5.0 confirmation stage
   itself, which was entirely untested. [Write-up](results/2026-10-08-sixi-oss-v6/README.md).
+- **After v0.6.0, a recall audit: the gap is 3 turns, not 61.** Payload-level truth made 61 turns
+  look missed, but 58 of them are compliant refusals that inherit `truth` from the one turn carrying
+  the same prompt that leaked. On this reply's own evidence there were **37 real leaks; the markers
+  broke 34 (turn-level recall 0.919)**. The 3 misses are refuse-then-describe-scope replies, and
+  offering them to the confirmation stage does not help: it kept 0 of the 2 real leaks it was shown
+  and 2 of 53 refusals, calling a capability summary *permitted* where the evaluator scored it a
+  medium violation (a small sample, reported as one). The KPI is not redefined; the corpus tooling
+  now records `real` beside `truth`. **Recall is at its practical ceiling here; the real headroom is
+  breadth.** [Audit](results/2026-10-08-sixi-oss-v6/README.md#recall-audit-the-gap-is-3-turns-not-61).
 
 <details>
 <summary><b>The legacy build: seven runs of measure → fix → re-run (09-24 → 09-30)</b></summary>
