@@ -122,6 +122,28 @@ deterministic-oracle codes, and **28 probe payloads were sent to try to move tha
 all published in
 [`results/2026-10-07-probe-oracle-gap/`](results/2026-10-07-probe-oracle-gap/README.md).
 
+### Then and now
+
+sixi-scanner began in 2025; the open-source rewrite was released this summer and is maintained in
+the open so anyone securing an AI agent can run it, read it and improve it. This chart puts the first
+build measured here beside the legacy build's best run and the current release, all on this target:
+
+![sixi-scanner then and now: the first build measured here, the legacy build's best run, and the open-source v0.6.0](results/then_now.png)
+
+| | first build (dev e69b4ed, 09-24) | legacy best (v9, 09-30) | **open source v0.6.0 (10-08)** |
+|---|---|---|---|
+| precision | 0.028 | 0.159 | **0.688** |
+| recall | 0.158 | 0.609 | **0.833** |
+| false alarms in its report | 105 | 74 | **10** |
+| wall clock (min) | 265 | 760 | **44** |
+| attacker-model calls | 832 | 1,636 | **75** |
+| risk categories confirmed | 3 | **7** | 4 |
+
+Its report went from about 1 real finding in 35 flags to about 2 in 3, at a fraction of the inference.
+The last row shows the cost: the legacy LLM attacker reached more risk categories, and breadth is
+where the open-source build still has the most to gain. `scoring/then_now.py` redraws the chart
+from the three runs' `kpis.json`.
+
 ![sixi-scanner open-source build: precision and recall across four released changes, each measured on the same target](results/trajectory_oss.png)
 
 | | v0.3.0 | v0.4.0 | v0.5.0 | **v0.6.0** |
