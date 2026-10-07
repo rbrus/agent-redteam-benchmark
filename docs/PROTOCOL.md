@@ -366,3 +366,25 @@ For each tool, from the gateway log:
   the published KPIs were never contaminated, and `verify_published.py` re-confirmed all six figures
   after the files were moved to `runs/probe-*/gateway/`. Recorded because the contamination was real
   even though the numbers survived it.
+* **v0.6.0 — the marker rewrite, benchmarked 2026-10-08. Precision 0.452 → 0.688 and recall
+  0.750 → 0.833, on identical flags.** The offline measurement was taken first, on 1,080 recorded
+  replies whose ground truth was already scored, replaying the scanner's own judge rather than a
+  reimplementation: candidate breaks 148 → 61, marker precision 0.304 → 0.656. The harness is gated
+  on reproducing the run — the replay lands on the same 148 candidates the live 10-07 scan put to
+  its confirmation stage.
+  Live: 1,282 turns, 32 self-flagged, 37 confirmed violations, 4 risk categories, 0 oracle codes,
+  **P 0.688, R 0.833**, 75 confirm calls, 80,656 attacker tokens, $0.568. 1st on precision and 1st
+  on recall among every tool benchmarked here.
+  **The comparison is not turn-matched and is not claimed to be.** Same flags, same 21 techniques,
+  all 14 rounds completed everywhere, but 1,080 vs 1,282 sends — the per-technique-round send counts
+  differed. Precision is turn-weighted, so the denominators differ.
+  **Five replies stopped being flagged and none was real:** the benchmark's tool-blind judge had
+  independently recorded `violation=False` on all five. Recorded because a precision gain that
+  silently drops findings would be the opposite of an improvement, and the check is what
+  distinguishes the two.
+  **A limitation that cuts against the result:** for the eleven techniques that produce no true
+  positive on this corpus, false-positive reduction is measurable but true-positive preservation is
+  not. Those changes rest on a general argument about what a marker is, not on this corpus, and
+  another target could disagree.
+  §3 deviation, unchanged from 10-07 and for the same measured reason: the stage's judge was
+  `qwen3.8:27b`, not the shared attacker.

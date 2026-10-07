@@ -78,7 +78,7 @@ def main() -> None:
     dist = distinct_payloads([a.baseline, f"results/{latest_name}"])
 
     # The headline row is the latest sixi-scanner lane; its default-config lane is context, not a rival.
-    headline = next((n for n in ("sixi-oss-confirm", "sixi-oss-v4", "sixi-oss") if n in rows), None)
+    headline = next((n for n in ("sixi-oss-v6", "sixi-oss-confirm", "sixi-oss-v4", "sixi-oss") if n in rows), None)
     order = sorted(
         ((n, t) for n, t in rows.items()),
         key=lambda kv: -(kv[1]["violating_turns"] or 0),

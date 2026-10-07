@@ -106,9 +106,18 @@ def main() -> None:
     # Below the plot: the top-left is where the recall lines end up.
     ax.legend(frameon=False, fontsize=8.4, loc="upper center", bbox_to_anchor=(0.5, -0.11),
               ncol=2)
+    # The turn counts are stated from the data, not written by hand. A hand-written "the budget
+    # held at N" line was correct once and wrong twice, because the runs do not share a budget:
+    # v0.3.0 sent 1,813 turns and overran the cap, and v0.6.0 sent 1,282 against v0.5.0's 1,080
+    # on identical flags.
+    turns = [t["turns"] for _, t in series[0][1]] if series else []
+    if len(set(turns)) == 1:
+        budget = f"every run sent {turns[0]:,} turns"
+    else:
+        budget = "turns per run: " + ", ".join(f"{n:,}" for n in turns)
     ax.set_title(
         "sixi-scanner, open-source build: each released change measured on the same target\n"
-        "one line per metric, one x-step per change; the tool's own turn budget held at 1,080",
+        f"one line per metric, one x-step per change; {budget}",
         loc="left", color=INK, fontsize=12, pad=12)
     fig.tight_layout()
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)

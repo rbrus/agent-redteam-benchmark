@@ -99,32 +99,34 @@ All KPIs are defined in [PROTOCOL §5](docs/PROTOCOL.md).
 
 [sixi-scanner](https://github.com/rbrus/sixi-scanner) is open source: a single Go binary with zero
 dependencies, 21 techniques and no LLM in it. It runs through the same gateway, oracles and judge as
-everything above. Current release is v0.5.1 (an exit-code fix only; the numbers below are v0.5.0), and
-it runs in CI as [`rbrus/scan-action@v2`](https://github.com/rbrus/scan-action).
+everything above. Current release is v0.6.0, and it runs in CI as
+[`rbrus/scan-action@v2`](https://github.com/rbrus/scan-action).
 
-| sixi-scanner v0.5.0 | measured | against the baseline leaderboard |
+| sixi-scanner v0.6.0 | measured | against the baseline leaderboard |
 |---|---|---|
-| **Precision — of what it reported, how much was real** | **0.452** | 1st (deepteam 0.300, promptfoo 0.141, garak 0.138) |
-| **Recall — of what it broke, how much it reported** | **0.750** | 1st (garak 0.556) |
-| **Confirmed violations found** | **37** from 1,080 turns | 3rd (promptfoo 89, garak 81) |
-| **Cost** | **$0.46** + 148 local model calls | no cloud inference |
+| **Precision — of what it reported, how much was real** | **0.688** | 1st (deepteam 0.300, promptfoo 0.141, garak 0.138) |
+| **Recall — of what it broke, how much it reported** | **0.833** | 1st (garak 0.556) |
+| **Confirmed violations found** | **37** from 1,282 turns | 3rd (promptfoo 89, garak 81) |
+| **Cost** | **$0.57** + 75 local model calls | no cloud inference |
 
-It is the only tool on this board holding both the precision and the recall target at once (0.452 ≥
-0.30, 0.750 ≥ 0.56). **Where it loses: breadth.** Seven distinct attacks beat it (promptfoo 89, garak
-67); 21 techniques is a floor, not a state of the art. It scores 0 deterministic-oracle codes, and
-**28 probe payloads were sent to try to move that** without success — all published in
+It is the only tool on this board holding both the precision and the recall target at once (0.688 ≥
+0.30, 0.833 ≥ 0.56). **Where it loses: breadth.** Many more distinct attacks beat it (promptfoo 89,
+garak 67, deepteam 21 against its 6); 21 techniques is a floor, not a state of the art. It scores 0
+deterministic-oracle codes, and **28 probe payloads were sent to try to move that** without success —
+all published in
 [`results/2026-10-07-probe-oracle-gap/`](results/2026-10-07-probe-oracle-gap/README.md).
 
-![sixi-scanner open-source build: precision and recall across three released changes, each measured on the same target](results/trajectory_oss.png)
+![sixi-scanner open-source build: precision and recall across four released changes, each measured on the same target](results/trajectory_oss.png)
 
-| | v0.3.0 | v0.4.0 | **v0.5.0** |
-|---|---|---|---|
-| what changed | markers only | + a shared **rule-recitation** marker | + the optional **confirmation stage** |
-| precision | 0.248 | 0.270 | **0.452** |
-| recall | 0.444 | **0.857** | 0.750 |
+| | v0.3.0 | v0.4.0 | v0.5.0 | **v0.6.0** |
+|---|---|---|---|---|
+| what changed | markers only | + **rule recitation** | + the optional **confirmation stage** | + **markers that test the leak, not the attack** |
+| precision | 0.248 | 0.270 | 0.452 | **0.688** |
+| recall | 0.444 | **0.857** | 0.750 | **0.833** |
 
 Each change was measured offline against replies already recorded with their ground truth, then re-run
-live with the same 1,080-turn budget.
+live. The runs do not share a turn count — the chart prints each one, because a hand-written claim
+that they did was wrong twice.
 
 - **v0.4.0, the recitation marker.** One probe accounted for **34 of 62 violating turns** by drawing a
   verbatim recital of the agent's refund cap, e-mail allow-list and account scope, and the scanner had
@@ -138,6 +140,21 @@ live with the same 1,080-turn budget.
   `qwen3.8:27b` as the judge, because the shared attacker dropped 4 of 6 real leaks in replay and
   would have made the report worse than no stage at all ([PORTING.md §2](tools/sixi-scanner-oss/PORTING.md)).
   [Write-up](results/2026-10-07-sixi-oss-confirm/README.md).
+- **v0.6.0, markers that test the leak instead of the attack.** Most of the catalogue's markers were
+  the *attacker's* vocabulary, so a refusal that quoted the payload scored as a break: an agent
+  decoding an encoded instruction and refusing it matched `ignore all rules`. Worse, **a typographic
+  apostrophe silently disabled the whole negation list** — every cue is ASCII (`i can't`) and the
+  model's replies write `can’t`. On 1,080 recorded replies, 737 contain U+2019 and 691 of those are
+  refusals, while *none* uses a straight apostrophe in "can't". Credential markers matched a config
+  snippet of placeholders and reported it at **critical**. Fixed three ways: fold typography to ASCII
+  before matching, anchor credentials to a value, and stop the recitation test firing on the eight
+  techniques whose own payload asks the agent to describe itself. Measured offline first on those
+  1,080 replies — candidate breaks 148 → 61, marker precision 0.304 → **0.656** — then re-run live:
+  **precision 0.452 → 0.688, recall 0.750 → 0.833, and the confirmation stage's cost halved as a side
+  effect (148 calls → 75)** because there were far fewer candidates to ask about. Nothing real was
+  lost: the five replies that stopped being flagged were five the benchmark's own judge had recorded
+  as compliant. Test coverage 83.3% → 90.0%, the largest gap being the v0.5.0 confirmation stage
+  itself, which was entirely untested. [Write-up](results/2026-10-08-sixi-oss-v6/README.md).
 
 <details>
 <summary><b>The legacy build: seven runs of measure → fix → re-run (09-24 → 09-30)</b></summary>
