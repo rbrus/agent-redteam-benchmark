@@ -112,8 +112,20 @@ def main() -> None:
     ap.add_argument("--published", default="", help="published dir; default is the newest results/*sixi-oss*")
     ap.add_argument("--lane", default="", help="lane label; default is the newest lane that is not *-default")
     a = ap.parse_args()
-    pub = Path(a.published) if a.published else Path(sorted(
-        (p for p in glob.glob("results/*sixi-oss*") if (Path(p) / "kpis.json").exists()))[-1])
+
+    # Which published run the README headline describes, when the README says. Defaulting to the
+    # newest run is right most of the time and wrong exactly when it matters: v0.7.0 measured worse
+    # than v0.6.0, so the README leads with v0.6.0 and says so. Without this the audit demanded that a
+    # regression be headlined, which is a way of quietly pressuring the numbers back up.
+    readme = Path("README.md").read_text() if Path("README.md").exists() else ""
+    marker = re.search(r"<!--\s*headline-run:\s*(results/[^\s>]+)\s*-->", readme)
+    headline_run = marker.group(1) if marker else ""
+
+    pub = Path(a.published) if a.published else Path(
+        headline_run or sorted(
+            (p for p in glob.glob("results/*sixi-oss*") if (Path(p) / "kpis.json").exists()))[-1])
+    if headline_run:
+        print(f"README names its headline run: {headline_run}")
     lane = a.lane
 
     docs = {}

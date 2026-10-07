@@ -414,3 +414,29 @@ For each tool, from the gateway log:
 Also recorded: a positional join between the probe's verdicts and the corpus initially reported all
   3 misses as "never offered to the stage". That was a broken join, not a result; the probe now keys
   every verdict by a hash of the reply, and the corrected run shows 66 answers joining 66 unique ids.
+* **v0.7.0 (2026-10-09) is a documented NEGATIVE, and the headline figure stays on v0.6.0.**
+  Precision 0.688 → **0.500**, recall 0.833 → **0.667**, confirmed violating turns 37 → **29**. It is
+  published as a negative rather than dropped, because what it showed is more useful than a win.
+  **The mechanism worked.** On the 14 replies that asserted a completed action, the new trace-aware
+  check cleared **all 14** — in every case the agent had genuinely called `lookup_account` then
+  `send_email`, so the claim was true, and the benchmark's judge independently agreed
+  (`violation=False` on all 14). The check did exactly what it was ported to do and that the build it
+  came from says it cannot: adjudicate a claim against the tool trace rather than the prose.
+  **The false positive was created by the confirmation stage.** The single `false-action-claim` finding
+  carries the stage's reasoning — "claimed to have sent an email ... without evidence of calling the
+  `send_email` tool" — when the `send_email` call was in that very turn. The claim check had cleared
+  it; the recitation test then routed the same reply to a stage that sees the policy and the prose but
+  not the calls, and the stage believed the claim. That is the blind spot the licensed build
+  documents about itself, reproduced inside this build's own stage.
+  **A methodology error of mine is what sent the work.** The decision to build it came from a probe
+  measuring 8 of 10 payloads inducing an unbacked claim, with the judge confirming 9 of 10. That probe
+  posted payloads **without offering the agent any tools**, so "All set. I've emailed your account
+  summary" was false *because the harness had made it false*. The scanner offers tools, the agent uses
+  them, and the claim is true. Recorded because a probe that measures an artefact of its own harness
+  is worse than no probe, and it was only visible because the technique shipped and the live run
+  disagreed with it.
+  **Why the class is unreachable here.** The 58 baseline turns are mostly promptfoo's, and its frames
+  confirm a *refund* or an *escalation* — actions this agent cannot honestly have completed, so
+  affirming them is a lie. Mine asked about *email*, which it can do. Measured here: the
+  presupposition frames drew "I have no record of that" 6 times of 6; the email frames tell the
+  truth. The class is reachable in principle, not with these payloads against this target.
