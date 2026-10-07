@@ -29,6 +29,12 @@ by ten deterministic oracles and a tool-blind LLM judge. About 15,000 target tur
 > that tool looked worst. Its re-runs were tuned against this target's ground truth; the other tools
 > ran once, at their documented defaults. Read its rows with that in mind.
 
+> **How this was built.** Tooling, analysis scripts and write-ups were developed with Claude
+> (Anthropic) as a coding assistant. Claude plays no part in the measurement: it is not the target,
+> attacker or judge. Every published figure is recomputed from the raw logs by
+> `scoring/verify_published.py`, and `scoring/audit_prose.py` fails when a number in the prose drifts
+> from the data. Responsibility for every claim is mine.
+
 ![Every red-teaming tool on one Foundry agent, with the current sixi-scanner highlighted](results/headline.png)
 
 ## The leaderboard
