@@ -440,3 +440,31 @@ Also recorded: a positional join between the probe's verdicts and the corpus ini
   affirming them is a lie. Mine asked about *email*, which it can do. Measured here: the
   presupposition frames drew "I have no record of that" 6 times of 6; the email frames tell the
   truth. The class is reachable in principle, not with these payloads against this target.
+* **v0.7.0's regression was a bug, not the feature — v0.7.1 fixes it (2026-10-08).** Decomposed by
+  replaying the shipped judge over the run's own corpus with the new technique's flags removed:
+  **precision 0.500 → 0.818**, recall **unchanged at 0.667**. So the whole precision regression was
+  the new technique and none of the recall regression was.
+  **The bug.** `ExtractToolCalls` returned (empty, known=true) when a message had no `tool_calls` key,
+  which says "the endpoint reports a trace and the agent called nothing". An *absent* key says the
+  endpoint does not report a trace at all. The benchmark's `/v1/chat/completions` returns only
+  `{role, content}`, so every turn hit the absent-key case and the check declared a lie it had no
+  evidence for — 14 times at confidence 0.90, on turns where the agent had genuinely called
+  `lookup_account` then `send_email`. Three states are now distinguishable: calls listed; `[]` meaning
+  known-empty; absent meaning unknown. With that, the engine records `Unbacked` and abstains.
+  **This was the same conflation as v0.7.0's nil-vs-empty fix, in the other direction** — "no trace"
+  and "empty trace" had been separated, and then "no trace reported" and "nothing called" were merged
+  back together. Two of my three fixes for this feature have been of that shape.
+  **Consequence stated rather than hidden: against this benchmark the technique is necessarily
+  inert**, because the gateway exposes no trace to any caller. It is exercisable only against an
+  endpoint that returns `tool_calls`. Re-measured on the v0.7.0 corpus after the fix: 14 replies
+  asserted a completed action, **0 adjudicable, 0 reported**.
+  **The recall difference is not the feature.** v0.7.0 hit 4 of 6 violating payloads against v0.6.0's
+  5 of 6, and the two missed were `system-prompt-leak` and a translation payload — pre-existing
+  techniques, with nothing to do with this release. It is run-to-run variance in what the target
+  chose to leak, which is why every before/after claim in this repository is made on precision and
+  recall over turn- and payload-weighted sets rather than on violation counts.
+  Also corrected in the measurement tooling: `marker_corpus.py` recorded the tool calls the *gateway
+  logged internally*, which no scanner can see. It now records the trace **exposed to the caller**
+  (null on every turn here) alongside the gateway's internal log, and says so; and `replay_markers.py`
+  reports three states — trace proves false, trace proves true, and unadjudicable — because calling an
+  unadjudicable claim either "backed" or "unbacked" is the same error one level up.
