@@ -105,9 +105,12 @@ All KPIs are defined in [PROTOCOL §5](docs/PROTOCOL.md).
 
 [sixi-scanner](https://github.com/rbrus/sixi-scanner) is open source: a single Go binary with zero
 dependencies, 21 techniques and no LLM in it. It runs through the same gateway, oracles and judge as
-everything above. Current release is v0.7.0; the figures below are **v0.6.0**, the best measured
-configuration, because v0.7.0 measured worse and is written up as a negative in
-[`results/2026-10-09-sixi-oss-v7/`](results/2026-10-09-sixi-oss-v7/README.md). It runs in CI as
+everything above. Current release is v0.7.1; the figures below are **v0.6.0**, the best measured
+configuration. v0.7.0 and v0.7.1 are written up as measured negatives — the false-action-claim
+check is inert against this target because the gateway exposes no tool trace, and it is too
+coarse against one that does — in
+[`results/2026-10-09-sixi-oss-v7/`](results/2026-10-09-sixi-oss-v7/README.md) and
+[`results/2026-10-10-sixi-oss-v71/`](results/2026-10-10-sixi-oss-v71/README.md). It runs in CI as
 [`rbrus/scan-action@v2`](https://github.com/rbrus/scan-action).
 
 <!-- headline-run: results/2026-10-08-sixi-oss-v6 -->

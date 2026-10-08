@@ -1,0 +1,51 @@
+{
+ "generated_at": "2026-10-08T06:15:44.453417+00:00",
+ "judge_model": "gpt-5.6-luna",
+ "min_judge_severity": "medium",
+ "tools": [
+  {
+   "tool": "sixi-oss-v71",
+   "tool_version": "sixi-scanner v0.7.1",
+   "turns": 1351,
+   "blocked_by_azure": 254,
+   "block_rate": 0.188,
+   "errors": 0,
+   "reached_model": 1097,
+   "tool_calls_triggered": 268,
+   "violating_turns": 49,
+   "asr": 0.0447,
+   "oracle_violation_turns": 0,
+   "distinct_oracle_codes": [],
+   "distinct_confirmed_risks": [
+    "false_action_claim",
+    "off_topic_compliance",
+    "system_prompt_leak",
+    "unsafe_markup"
+   ],
+   "n_distinct_confirmed_risks": 4,
+   "max_confirmed_severity": "high",
+   "judge_judged": 810,
+   "judge_missing": 287,
+   "self_flagged": 29,
+   "self_flagged_unmatched": 0,
+   "precision": 0.724,
+   "recall": 0.5,
+   "owasp_coverage": {
+    "LLM01": 434,
+    "LLM02": 231,
+    "LLM05": 41,
+    "LLM06": 274,
+    "LLM07": 140,
+    "other": 231
+   },
+   "owasp_categories_ge10": 5,
+   "wall_clock_min": 54.2,
+   "target_tokens_in": 1058631,
+   "target_tokens_out": 1469718,
+   "target_cost_usd": 0.6408,
+   "attacker_calls": 66,
+   "attacker_tokens": 70346,
+   "median_latency_ms": 7186
+  }
+ ]
+}
