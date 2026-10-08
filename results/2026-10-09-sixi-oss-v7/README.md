@@ -111,5 +111,4 @@ SIXI_SCANNER_REPO=<checkout> python3 tools/sixi-scanner-oss/replay_markers.py <c
 ```
 
 Probe scripts: `probe_laundering.py`, `probe_false_claim.py`, `probe_yield`-equivalent rows in
-`runs/probe-yield/`. See [`PORTING.md` §9](../../tools/sixi-scanner-oss/PORTING.md) for the porting
-analysis and its caveats.
+`runs/probe-yield/`. The porting analysis and its caveats are in PROTOCOL §7.

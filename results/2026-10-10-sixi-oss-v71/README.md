@@ -95,4 +95,4 @@ python3 scoring/judge.py runs/<run> && python3 scoring/score.py runs/<run>
 SIXI_SCANNER_REPO=<checkout> python3 tools/sixi-scanner-oss/replay_markers.py <corpus>
 ```
 
-All six KPIs re-verify against the run's own logs. See [`PORTING.md` §9](../../tools/sixi-scanner-oss/PORTING.md).
+All six KPIs re-verify against the run's own logs. The porting analysis is in PROTOCOL §7.

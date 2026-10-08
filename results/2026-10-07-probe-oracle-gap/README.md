@@ -1,6 +1,6 @@
 # 2026-10-07 — Probing the open-source build's zero-oracle-codes gap
 
-Evidence for [`PORTING.md` §8](../../tools/sixi-scanner-oss/PORTING.md) and the note in
+Evidence for the oracle-gap investigation recorded in
 [PROTOCOL §7](../../docs/PROTOCOL.md). `runs/` is gitignored, so without this directory the "28 probe
 payloads, 0 oracle hits" claim could not be checked by a reader. Everything here is generated from the
 probe ledgers by `scripts/publish_probe_evidence.py` — the payload as sent, the reply as received, the

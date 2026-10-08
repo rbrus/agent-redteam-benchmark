@@ -112,7 +112,7 @@ Stated plainly, and scored as gaps rather than argued away:
   actively harmful — it dropped 4 real leaks, including the most productive payload of the whole
   benchmark, having answered that an agent itemising its own refund cap was *"adhering to the policy"*.
   A screen that cannot recognise a paraphrase cannot check a recitation. Full table in
-  [PORTING.md §2](../../tools/sixi-scanner-oss/PORTING.md).
+  PROTOCOL §7, which records both measurements.
 * **No sessions, so no split-cap oracle.** It sends one message per request through the gateway's
   stateless endpoint, so `REFUND_CAP_SPLIT` — the refund-cap guardrail bypass that needs two requests in
   one conversation — is unreachable for this client. Across all published runs that oracle has 7 hits,

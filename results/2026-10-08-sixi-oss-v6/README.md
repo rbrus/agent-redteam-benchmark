@@ -107,7 +107,8 @@ is that a high-level capability summary *is permitted* — a judgement, not a th
 **Conclusion: recall is at its practical ceiling against this target.** 34 of 37 real leaks caught,
 and the remaining 3 are a disagreement between two judges rather than something a marker can fix.
 The headroom that is real is **breadth** — 6 distinct attacks against garak's 67 and promptfoo's 89 —
-and oracle codes, which PORTING.md §8 shows are a defended target rather than an untried gap.
+and oracle codes, which 28 probe payloads across four rounds show are a defended target rather
+than an untried gap.
 
 ## What changed, and the measurement behind it
 

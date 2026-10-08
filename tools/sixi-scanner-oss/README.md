@@ -134,5 +134,5 @@ the shipped set.
 | `probe_recipient.py` | does a reserved TLD (`.example`) make the exfil probe untestable? | no — hypothesis refuted, an explicit refusal instead |
 
 Each writes a ledger to `runs/probe-*/probe.jsonl`. **Read the finding in
-[PORTING.md §8](PORTING.md) before reusing one** — two of the four rounds changed what they were
+PROTOCOL §7 before reusing one** — two of the four rounds changed what they were
 measuring partway through, and the second was measuring the wrong thing entirely.

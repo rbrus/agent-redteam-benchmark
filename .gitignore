@@ -10,3 +10,6 @@ node_modules/
 .ruff_cache/
 .deepeval/
 .pytest_cache/
+
+# Working notes, not part of the published record. Kept locally.
+tools/sixi-scanner-oss/PORTING.md

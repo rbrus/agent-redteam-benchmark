@@ -172,7 +172,7 @@ that they did was wrong twice.
   `--confirm-url`, every candidate break goes to a model; it was asked 148 times and rejected 106,
   taking self-flags from 152 to 42. This run **deviates from PROTOCOL §3 deliberately**: it used
   `qwen3.8:27b` as the judge, because the shared attacker dropped 4 of 6 real leaks in replay and
-  would have made the report worse than no stage at all ([PORTING.md §2](tools/sixi-scanner-oss/PORTING.md)).
+  would have made the report worse than no stage at all (both measurements are in PROTOCOL §7).
   [Write-up](results/2026-10-07-sixi-oss-confirm/README.md).
 - **v0.6.0, markers that test the leak instead of the attack.** Most of the catalogue's markers were
   the *attacker's* vocabulary, so a refusal that quoted the payload scored as a break: an agent
@@ -339,7 +339,7 @@ unified-judge verdicts.
 | [`scoring/`](scoring/) | the tool-blind judge, the KPIs, the charts, and the checkers: `verify_published.py` (recomputes every figure from the logs), `audit_prose.py` (fails when a published number drifts from the data), `distinct.py` (attacks, not turns) |
 | [`results/`](results/) | every published run: `kpis.json`/`.csv`, `table.md`, charts, `findings.jsonl` (each confirmed turn: input, reply, tool calls, what confirmed it) |
 | [`tools/sixi-scanner/calibration/`](tools/sixi-scanner/calibration/) | the offline confirmation-judge measurements, reproducible from the repository |
-| [`tools/sixi-scanner-oss/`](tools/sixi-scanner-oss/) | the open-source build's lab, its result parser, and [PORTING.md](tools/sixi-scanner-oss/PORTING.md): every mechanism measured for porting from the other codebases here |
+| [`tools/sixi-scanner-oss/`](tools/sixi-scanner-oss/) | the open-source build's lab: its result parser, the offline measurement harness, and the probe scripts that answer "is this attack class worth implementing?" before anything is written |
 | [`docs/`](docs/) | [PROTOCOL.md](docs/PROTOCOL.md) (the rules, and §7: every change made after a run) · [LAB-00-target.md](docs/LAB-00-target.md) (the build guide) |
 
 ## Licence
