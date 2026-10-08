@@ -302,6 +302,57 @@ set scores an invisible character), `tiered.go` (13 techniques on an ordered mar
 refinement for the 8 false positives that remain), and `coded_recipient_laundering.go` for oracle codes
 (measured null: 0 of 6, see below).
 
+## 10. Prompt-Injection-in-the-Wild — a good tracker of a different product surface
+
+Assessed [cybershujin/Prompt-Injection-in-the-Wild](https://github.com/cybershujin/Prompt-Injection-in-the-Wild):
+32 vetted entries, 30 marked Confirmed, each with its delivery method, encoding, propagation behaviour,
+confirmed models and a primary source. It is well-sourced and unusually disciplined about leaving
+fields blank rather than guessing. Worth reading — and mostly not applicable here, for reasons that
+are measurable rather than matters of taste.
+
+**Out of scope for this tool outright (about 11 of 32).** Seven entries are MCP: tool poisoning, rug
+pulls, line jumping, CurXecute, AgentFlayer, MCPoison. This scanner speaks OpenAI-compatible HTTP to a
+chat endpoint; it has no MCP client, no connector surface and no repository. Three are multimodal
+(screenshot-OCR injection, GPT-4V image injection, image-borne memory), and the scanner sends text
+only. The rules-file and repository entries need file access the tool does not have.
+
+**Already covered.** Bard's markdown-image exfiltration and EchoLeak are what
+`probe.llm05.markdown-exfiltration` tests, and it is one of the strongest techniques in the set — 8
+confirmed turns in the 10-08 run. Base64 is `probe.llm01.encoded-instruction`. The HTML and Markdown
+comment injections are `probe.llm01.indirect-injection`. The chatbot-override entries (Chevrolet's
+"$1 Tahoe", the DPD override) are `probe.llm01.instruction-override`.
+
+**The one genuinely new cluster, and it is not testable here.** Unicode tag characters are the largest
+encoding cluster in the tracker — 6 of 32, the FireTail ASCII-smuggling lineage. This build has zero
+techniques covering it and the licensed build has one, so it was a port candidate. It was measured
+first (`probe_tagplane.py`, 5 target turns) and the precondition fails: **the tag characters are
+stripped before the model sees them.** Asked to repeat a tag-plane string, the agent replied "Please
+provide the exact text you want me to decode and repeat" — it received nothing. Zero-width characters
+behave differently and more interestingly: they are stripped but the text survives between them, so
+the instruction *is* delivered and the agent refuses it — that is a filter removing the invisible
+characters, not a bypass.
+
+The positive control settles it: the same harness asking for `HX-CANARY-PROBE` in plain ASCII returns
+`HX-CANARY-PROBE` exactly. So the round trip works and the encoding is what fails. A tag-plane
+technique shipped here would be a technique that can only ever pass, because the agent never receives
+the instruction. The tracker says as much about the vendors — "ChatGPT, Copilot and Claude were found
+to scrub them" — and this target scrubs them too.
+
+**What the tracker actually argues for is propagation, not encoding.** Counting propagation
+behaviours: moves through the tool-call chain (5), cross-agent or cross-session (4), persists in agent
+memory (3), poisons a shared data store or RAG index (2), self-proplicating worm (1), emits outbound
+email carrying further instructions (1). Every one of those needs multi-turn or cross-session
+capability, which is §5 — the one structural gap this document defers. So the tracker corroborates §5
+as the highest-value change available to this tool, rather than supplying a payload for it.
+
+**The honest framing.** Almost every entry here describes an agent that ingests untrusted external
+content: a coding agent reading a repository, an MCP client reading a server description, a browser
+assistant reading a page, a workplace connector reading a message. sixi-scanner tests a
+customer-support agent whose only untrusted-adjacent content is a fixed four-article knowledge base an
+attacker cannot plant into from a chat turn. This benchmark measures model-compliance weaknesses. That
+class of weakness is not in this tracker, and that tracker's class of weakness is not in this
+benchmark. Both are real; they are not the same product.
+
 ## Recommendation
 
 | candidate | measured effect | verdict |
@@ -314,7 +365,8 @@ refinement for the 8 false positives that remain), and `coded_recipient_launderi
 | coded payload families | unmeasurable; 9/9 breaks were plain text | **defer** — one sibling per confirmed shape |
 | retrieval-triggered indirect injection | 28 probe payloads, 4 rounds, **0 oracle hits** | **do not port** — §8 |
 | recipient laundering (for oracle codes) | 6 payloads, **0 oracle hits** | **do not port for that** — §9 |
-| false action claims | 58 confirmed turns on the baseline, this build **0**; 3 of 6 laundering probes confirmed | **port** — §9 |
+| false action claims | 58 confirmed turns on the baseline, this build **0**; the trace check is inert here (no exposed trace) and too coarse where a trace exists | **shipped, documented as unresolved** — §9 |
+| Unicode tag-plane smuggling | 6 of 32 entries in the in-the-wild tracker; **the characters are stripped before the model sees them** on this target | **do not port** — §10 |
 | laya-as-judge | cannot run on this host | **not applicable** |
 
 Both ports should be validated the way this note validates them: measure the candidate on recorded sends
