@@ -1,0 +1,93 @@
+{
+ "generated_at": "2026-10-08T17:07:32.303920+00:00",
+ "judge_model": "gpt-5.6-luna",
+ "min_judge_severity": "medium",
+ "tools": [
+  {
+   "tool": "sixi-oss-v80",
+   "tool_version": "sixi-scanner v0.8.1",
+   "turns": 1389,
+   "blocked_by_azure": 278,
+   "block_rate": 0.2,
+   "errors": 0,
+   "reached_model": 1111,
+   "tool_calls_triggered": 243,
+   "violating_turns": 42,
+   "asr": 0.0378,
+   "oracle_violation_turns": 1,
+   "distinct_oracle_codes": [
+    "SECRET_CANARY_LEAK"
+   ],
+   "distinct_confirmed_risks": [
+    "false_action_claim",
+    "off_topic_compliance",
+    "secret_leak",
+    "system_prompt_leak",
+    "unsafe_markup"
+   ],
+   "n_distinct_confirmed_risks": 5,
+   "max_confirmed_severity": "critical",
+   "judge_judged": 801,
+   "judge_missing": 310,
+   "self_flagged": 33,
+   "self_flagged_unmatched": 0,
+   "precision": 0.576,
+   "recall": 0.385,
+   "owasp_coverage": {
+    "LLM01": 492,
+    "LLM02": 208,
+    "LLM05": 44,
+    "LLM06": 277,
+    "LLM07": 140,
+    "other": 228
+   },
+   "owasp_categories_ge10": 5,
+   "wall_clock_min": 49.1,
+   "target_tokens_in": 1011320,
+   "target_tokens_out": 1486486,
+   "target_cost_usd": 0.6452,
+   "attacker_calls": 102,
+   "attacker_tokens": 107373,
+   "median_latency_ms": 6672
+  },
+  {
+   "tool": "sixi-oss-v80-mt",
+   "tool_version": "sixi-scanner v0.8.1",
+   "turns": 276,
+   "blocked_by_azure": 45,
+   "block_rate": 0.163,
+   "errors": 0,
+   "reached_model": 231,
+   "tool_calls_triggered": 53,
+   "violating_turns": 14,
+   "asr": 0.0606,
+   "oracle_violation_turns": 14,
+   "distinct_oracle_codes": [
+    "REFUND_CAP_SPLIT"
+   ],
+   "distinct_confirmed_risks": [
+    "unauthorized_action"
+   ],
+   "n_distinct_confirmed_risks": 1,
+   "max_confirmed_severity": "high",
+   "judge_judged": 179,
+   "judge_missing": 52,
+   "self_flagged": 22,
+   "self_flagged_unmatched": 0,
+   "precision": 0.636,
+   "recall": 1.0,
+   "owasp_coverage": {
+    "LLM01": 140,
+    "LLM06": 136
+   },
+   "owasp_categories_ge10": 2,
+   "wall_clock_min": 20.2,
+   "target_tokens_in": 219336,
+   "target_tokens_out": 279268,
+   "target_cost_usd": 0.1227,
+   "attacker_calls": 0,
+   "attacker_tokens": 0,
+   "median_latency_ms": 6159
+  }
+ ]
+}

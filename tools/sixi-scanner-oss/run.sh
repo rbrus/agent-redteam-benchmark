@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Open-source sixi-scanner (github.com/rbrus/sixi-scanner) against the benchmark gateway.
 #
-#   tools/sixi-scanner-oss/run.sh <run_dir> <label> [--rounds N] [--attempts N]
+#   tools/sixi-scanner-oss/run.sh <run_dir> <label> [--rounds N] [--attempts N] [--multiturn]
 #
 # Env:
 #   SIXI_OSS_BIN       path to the sixi-scanner binary (default: venvs/sixi-scanner-oss/sixi-scanner)
@@ -18,11 +18,12 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 RUN_DIR="${1:?run_dir}"; LABEL="${2:?label}"
 shift 2
-ROUNDS=1; ATTEMPTS=3
+ROUNDS=1; ATTEMPTS=3; MULTITURN=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --rounds) ROUNDS="$2"; shift 2;;
     --attempts) ATTEMPTS="$2"; shift 2;;
+    --multiturn) MULTITURN=1; shift;;
     *) echo "unknown flag $1" >&2; exit 2;;
   esac
 done
@@ -97,6 +98,59 @@ run() { # run <name> <extra flags...>
 }
 
 run scan
+
+# ---------------------------------------------------------------- multi-turn lane
+#
+# The main lane speaks the gateway's OpenAI-compatible endpoint, which is stateless: it sends one user
+# message per probe and the gateway opens a fresh conversation. A sequence technique cannot be measured
+# there at all -- the scanner declines those probes rather than sending their turns as unrelated
+# requests -- so this lane points the same binary at the gateway's session-carrying /chat endpoint and
+# runs only the techniques that need one.
+#
+# It is a SEPARATE LANE, not a second pass over the same one, and it is not turn-matched to anything
+# already published: the probes are conversations rather than single prompts, so its turns count and
+# its shape has never been on the leaderboard. PROTOCOL section 7 records that. Keeping it separate is
+# also what lets the other 23 techniques keep their existing turn-matching in $LABEL above.
+#
+# It is opt-in (--multiturn) so that a bare invocation reproduces a historical run byte for byte.
+if [ "$MULTITURN" = 1 ]; then
+  MT_LABEL="${LABEL}-mt"
+  MT_OUT="$RUN_DIR/$MT_LABEL/native"; mkdir -p "$MT_OUT"
+  MT_TARGET="$GW/t/$MT_LABEL/chat"
+
+  # Taken from the published catalogue rather than hardcoded, and verified against it: a technique
+  # that stops being a sequence must not linger in this lane, and one that becomes a sequence must not
+  # be missing from it. A mismatch fails the lane instead of quietly measuring less.
+  mapfile -t MT_IDS < <(python3 - "$TECHDUMP" <<'PY'
+import json, subprocess, sys
+raw = subprocess.run([sys.argv[1]], capture_output=True, text=True).stdout
+if not raw.strip():
+    sys.exit("techdump produced no catalogue")
+for t in json.loads(raw).get("techniques", []):
+    if t.get("sequence"):
+        print(t["id"])
+PY
+)
+  if [ "${#MT_IDS[@]}" -eq 0 ]; then
+    echo "sixi-scanner-oss [$MT_LABEL]: the catalogue declares no sequence techniques; lane not run" >&2
+  else
+    ONLY="$(IFS=,; echo "${MT_IDS[*]}")"
+    # Same provenance as the main lane: a results row with no version in it is not reproducible.
+    "$BIN" version > "$MT_OUT/version.txt" 2>&1 || true
+    "$TECHDUMP" > "$MT_OUT/techniques.json" 2>/dev/null || true
+    date -u +%FT%TZ > "$MT_OUT/started_at"
+    echo "sixi-scanner-oss [$MT_LABEL]: ${#MT_IDS[@]} sequence technique(s) over the session endpoint" >&2
+    "$BIN" scan --target chat --url "$MT_TARGET" --rounds "$ROUNDS" --attempts "$ATTEMPTS" \
+      --only "$ONLY" --recitation-threshold "$RECITE" "${CONFIRM_ARGS[@]}" \
+      --timeout "${SIXI_TIMEOUT:-90}s" --format json \
+      > "$MT_OUT/scan.json" 2> "$MT_OUT/scan.log" || true
+    date -u +%FT%TZ > "$MT_OUT/started_at"
+    printf '%s\t%s\t%s\t%s\n' "scan" 0 "$(stat -c %s "$MT_OUT/scan.json" 2>/dev/null || echo 0)" "ok" >> "$MT_OUT/phases.txt"
+    date -u +%FT%TZ > "$MT_OUT/finished_at"
+    python3 tools/sixi-scanner-oss/parse_results.py "$RUN_DIR" "$MT_LABEL" --techdump "$TECHDUMP"
+  fi
+fi
+
 date -u +%FT%TZ > "$OUT/finished_at"
 python3 tools/sixi-scanner-oss/parse_results.py "$RUN_DIR" "$LABEL" --techdump "$TECHDUMP"
 cat "$OUT/phases.txt"

@@ -63,6 +63,32 @@ def payload(variants: list[str], attempt: int, failed: list[int]) -> str:
     return variants[attempt % n]
 
 
+def sequence_steps(sequence: list[list[str]], attempt: int, failed: list[int]) -> list[str]:
+    """Replicate tech.Data.Steps: the ordered turns of one attempt.
+
+    Mirrors the scanner exactly, including the two details that make the reconstruction trustworthy:
+    the attempt index picks the conversation only while nothing has failed, and an empty conversation is
+    stepped over. With no sequence the caller falls back to payload().
+    """
+    n = len(sequence)
+    if not n:
+        return []
+    if attempt < 0:
+        attempt = 0
+    pick = attempt % n
+    if failed:
+        skip = set(failed)
+        for i in range(n):
+            if i not in skip and len(sequence[i]) > 0:
+                pick = i
+                break
+    for off in range(n):
+        i = (pick + off) % n
+        if len(sequence[i]) > 0:
+            return list(sequence[i])
+    return list(sequence[pick])
+
+
 def load_ledger(path: str) -> list[dict]:
     """Every send the tool made, in completion order, from its stderr progress lines."""
     out = []
@@ -128,6 +154,9 @@ def main() -> None:
 
     attempts = []
     missing_prompt = set()
+    # Sequence turns whose prompt matched no gateway row. Counted and reported rather than dropped,
+    # because a turn that could not be joined is a turn whose flag will not be credited or refuted.
+    unmatched_turns = 0
     cursor = defaultdict(int)
     # The engine walks each technique independently and re-tries a variant once every variant has been
     # used, so which prompt an attempt carried depends on the attempts that preceded it for the SAME
@@ -138,16 +167,74 @@ def main() -> None:
         key = (tid, a_["round"])
         variants = techs.get(tid, {}).get("variants", [])
         k = a_["attempt"]
-        prompt = payload(variants, k, used[key])
+        # Captured BEFORE the append: both payload() and sequence_steps() take the set of attempts
+        # already used for this technique, so including this one would make the walk skip straight
+        # past the conversation the scanner actually sent.
+        already = list(used[key])
+        # A sequence technique has no Variants at all, so payload() would return "" and then warn
+        # about a prompt it is never going to use; the sequence path below supplies it instead.
+        is_sequence = bool(techs.get(tid, {}).get("sequence"))
+        prompt = "" if is_sequence else payload(variants, k, already)
         used[key].append(k)
-        if not prompt:
+        if not prompt and not is_sequence:
             # A prompt the catalogue cannot supply. The tool's own evidence is authoritative for a turn
             # it flagged, so fall back to the finding recorded for this technique before giving up.
             f = next((f for f in findings if f["technique_id"] == tid), None)
             prompt = f["evidence"]["prompt"] if f and norm(f["evidence"]["prompt"]) in flagged_prompts else ""
-        if not prompt:
+        if not prompt and not is_sequence:
             missing_prompt.add(f"{tid} r{a_['round']}a{a_['attempt']}")
             prompt = f"[unreconstructable prompt: {tid} r{a_['round']}a{a_['attempt']}]"
+
+        cat = techs.get(tid, {}).get("category", "") or ""
+        owasp = cat.split(":")[0].strip()
+        base = {
+            "technique": tid,
+            "round": a_["round"],
+            "attempt": k,
+            "category": tid,
+            "owasp": owasp if owasp in OWASP else "other",
+            "owasp_full": cat,
+            "error": a_["error"],
+        }
+
+        steps = sequence_steps(techs.get(tid, {}).get("sequence", []) or [], k, already)
+        if len(steps) > 1:
+            # A sequence is one attempt and several turns. It is recorded as several sends, because
+            # every other send in this file is one prompt against one gateway row and the whole scorer
+            # joins on the prompt text; a single record holding the joined transcript would join to
+            # nothing and silently drop the evidence.
+            #
+            # The flag goes on the LAST turn only. The scanner's verdict is about the conversation,
+            # but this benchmark scores per turn, and the turn that completes a cumulative attack is
+            # the last one -- the earlier turns are the setup the user asked for and are compliant.
+            # Attributing the flag to all of them would charge the tool a false positive per setup
+            # turn; PROTOCOL section 7 records this rule.
+            last = len(steps) - 1
+            for j, step in enumerate(steps):
+                sn = norm(step)
+                sturn = None
+                if sn in replies and cursor[sn] < len(replies[sn]):
+                    sturn = replies[sn][cursor[sn]]
+                    cursor[sn] += 1
+                else:
+                    unmatched_turns += 1
+                rec = dict(base)
+                rec.update({
+                    "id": f"{label}-{i}-{j}",
+                    "prompt": step,
+                    "response": (sturn or {}).get("reply", ""),
+                    "blocked": (sturn or {}).get("blocked", False),
+                    "tool_flagged": bool(a_["broke"]) and j == last,
+                    "multi_turn": True,
+                    "sequence_turn": j,
+                    "sequence_len": len(steps),
+                    "sequence_broke": bool(a_["broke"]),
+                })
+                if sturn:
+                    rec["session"] = sturn.get("session")
+                attempts.append(rec)
+            used[key].append(k)
+            continue
 
         n = norm(prompt)
         turn = None
@@ -155,23 +242,16 @@ def main() -> None:
             turn = replies[n][cursor[n]]
             cursor[n] += 1
 
-        cat = techs.get(tid, {}).get("category", "") or ""
-        owasp = cat.split(":")[0].strip()
-        attempts.append({
+        rec = dict(base)
+        rec.update({
             "id": f"{label}-{i}",
-            "technique": tid,
-            "round": a_["round"],
-            "attempt": k,
-            "category": tid,
-            "owasp": owasp if owasp in OWASP else "other",
-            "owasp_full": cat,
             "prompt": prompt,
             "response": (turn or {}).get("reply", ""),
             "blocked": (turn or {}).get("blocked", False),
             "tool_flagged": bool(a_["broke"]),
-            "error": a_["error"],
             "multi_turn": False,
         })
+        attempts.append(rec)
 
     # The report's own count is the tool's statement of how many sends it made; if the ledger we
     # parsed disagrees, one of the two is wrong and the run must not be scored on a guess.
@@ -179,6 +259,11 @@ def main() -> None:
     if isinstance(counted, int) and counted != len(ledger):
         print(f"{label}: ledger has {len(ledger)} attempts but the report counted {counted}",
               file=sys.stderr)
+    # attempts here is per SEND, the report's count is per ATTEMPT. They are equal only when nothing
+    # needed more than one turn, so the difference is expected and is stated rather than warned about.
+    if isinstance(counted, int) and counted != len(attempts):
+        print(f"{label}: {len(attempts)} sends from {counted} attempts "
+              f"(the difference is multi-turn)", file=sys.stderr)
 
     by_sev = defaultdict(int)
     for f in findings:
@@ -189,7 +274,7 @@ def main() -> None:
     out = {
         "tool": label,
         "tool_version": version,
-        "config": f"open-source build, static payloads, single-turn; "
+        "config": f"open-source build, static payloads; "
                   f"rounds={rep.get('options', {}).get('rounds')}, "
                   f"attempts={rep.get('options', {}).get('max_attempts_per_technique')}, "
                   f"concurrency={rep.get('options', {}).get('concurrency')}, "
@@ -218,6 +303,9 @@ def main() -> None:
     if rep.get("no_answer"):
         print(f"{label}: {len(rep['no_answer'])} technique(s) got no answer and were NOT counted as passes: "
               f"{', '.join(rep['no_answer'])}")
+    if unmatched_turns:
+        print(f"{label}: WARNING — {unmatched_turns} multi-turn send(s) matched no gateway row, so "
+              f"their replies were left empty", file=sys.stderr)
     if missing_prompt:
         print(f"{label}: WARNING — {len(missing_prompt)} prompt(s) could not be reconstructed from the "
               f"technique catalogue, so their joins to the gateway log are by position only", file=sys.stderr)

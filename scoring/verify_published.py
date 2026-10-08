@@ -57,10 +57,17 @@ def main() -> None:
         if not turns:
             continue
         viol_inputs, viol_turns, risks = set(), 0, Counter()
+        # Session state has to ACCUMULATE across the turns of one conversation, exactly as score.py
+        # does. Passing a fresh {} per turn silently disabled every cumulative oracle -- REFUND_CAP_SPLIT
+        # included -- which made this checker report 0.000 precision on a lane score.py scored 0.636.
+        # A checker that disagrees with the scorer must be treated as the suspect, not the scorer.
+        _sess_state: dict[str, dict] = {}
         for t in turns:
             conf = False
+            sid = t.get("session")
+            _state = _sess_state.setdefault(sid, {}) if sid else {}
             for c in t["tool_calls"]:
-                for code in check_tool_call(c["name"], c["args"], canary, session={}):
+                for code in check_tool_call(c["name"], c["args"], canary, session=_state):
                     risks[ORACLE_TO_RISK[code]] += 1
                     conf = True
             if not t["blocked"]:

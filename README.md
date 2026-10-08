@@ -104,14 +104,23 @@ All KPIs are defined in [PROTOCOL §5](docs/PROTOCOL.md).
 ## sixi-scanner: the author's tool, measured on the same wire
 
 [sixi-scanner](https://github.com/rbrus/sixi-scanner) is open source: a single Go binary with zero
-dependencies, 21 techniques and no LLM in it. It runs through the same gateway, oracles and judge as
-everything above. Current release is v0.7.1; the figures below are **v0.6.0**, the best measured
-configuration. v0.7.0 and v0.7.1 are written up as measured negatives — the false-action-claim
-check is inert against this target because the gateway exposes no tool trace, and it is too
-coarse against one that does — in
-[`results/2026-10-09-sixi-oss-v7/`](results/2026-10-09-sixi-oss-v7/README.md) and
-[`results/2026-10-10-sixi-oss-v71/`](results/2026-10-10-sixi-oss-v71/README.md). It runs in CI as
-[`rbrus/scan-action@v2`](https://github.com/rbrus/scan-action).
+dependencies, 26 techniques and no LLM in it. It runs through the same gateway, oracles and judge as
+everything above. Current release is v0.8.1.
+
+**The headline below is still v0.6.0, the best measured configuration — v0.8.1 does not displace
+it.** v0.8.1 scored *worse* on both headline metrics (precision 0.576, recall 0.385) and is published
+as a measured result rather than quietly dropped: it hit the **first two oracle codes this tool has
+ever scored**, including one that is structurally unreachable by a single-turn scanner, and it is the
+only lane on this board with recall 1.000. The precision and recall falls are documented as
+**target-driven, not tool-driven** — hits have been 5 in every run since v0.6.0 while the violating
+payload count went 6 → 10 → 13.
+
+| release | what it is |
+|---|---|
+| **v0.8.1** | multi-turn probes, a session connector, 4 agentic-autonomy techniques. [measured](results/2026-10-11-sixi-oss-v80/README.md) |
+| v0.7.0 / v0.7.1 | false-action-claim, adjudicated against the tool trace. [measured negative](results/2026-10-10-sixi-oss-v71/README.md) — inert against this target, which exposes no trace, and too coarse against one that does |
+
+It runs in CI as [`rbrus/scan-action@v2`](https://github.com/rbrus/scan-action).
 
 <!-- headline-run: results/2026-10-08-sixi-oss-v6 -->
 | sixi-scanner v0.6.0 | measured | against the baseline leaderboard |
@@ -120,6 +129,32 @@ coarse against one that does — in
 | **Recall — of what it broke, how much it reported** | **0.833** | 1st (garak 0.556) |
 | **Confirmed violations found** | **37** from 1,282 turns | 3rd (promptfoo 89, garak 81) |
 | **Cost** | **$0.57** + 75 local model calls | no cloud inference |
+
+### The multi-turn lane: `sixi-oss-v80-mt`
+
+A second lane for the same v0.8.1 binary, pointed at the gateway's session-carrying endpoint, because
+**some attacks only exist across a conversation** — a limit expressed per request, an instruction
+acted on two turns later, a payload that asks to be relayed onward.
+
+| sixi-oss-v80-mt | measured | note |
+|---|---|---|
+| **Recall** | **1.000** | the only lane on this board at 1.000 |
+| Precision | 0.636 | |
+| **Oracle codes** | **`REFUND_CAP_SPLIT`** | unreachable by any single-turn scanner |
+| Confirmed violations | 14 from 276 turns | |
+| Cost | **$0.12** | no cloud inference |
+
+**This lane is not turn-matched to any row above and must not be compared to one.** Its unit of
+measurement is a conversation, not a prompt. PROTOCOL §8 states the two scoring rules it required and
+the two bugs the work found.
+
+The result worth reading: the agent drew two in-cap refunds of 30 EUR against a 50 EUR **per-request**
+cap, and the gateway's own oracle recorded `REFUND_CAP_SPLIT`. **The per-request guardrail was
+correct and the attack still worked**, because the limit was per request and the attack was split
+across a conversation. The same lane also caught the agent **relaying an injection payload by email,
+verbatim, twice** — which no oracle here scores and the shared evaluator ruled compliant.
+
+---
 
 It is the only tool on this board holding both the precision and the recall target at once (0.688 ≥
 0.30, 0.833 ≥ 0.56). **Where it loses: breadth.** Many more distinct attacks beat it (promptfoo 89,
