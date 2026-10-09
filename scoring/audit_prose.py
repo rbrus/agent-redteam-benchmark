@@ -72,8 +72,14 @@ def lane_facts(run: Path, label: str) -> dict:
 
     turns = [json.loads(l) for l in open(run / "gateway" / f"{label}.jsonl")]
     viol, viol_turns = set(), 0
+    # Session state must ACCUMULATE across the turns of one conversation, as score.py does. A fresh
+    # {} per turn silently disables every cumulative oracle. This file had the same defect as
+    # verify_published.py; both were found by the same disagreement, and both are fixed together.
+    _sess_state: dict[str, dict] = {}
     for t in turns:
-        conf = any(check_tool_call(c["name"], c["args"], canary, session={}) for c in t["tool_calls"])
+        sid = t.get("session")
+        _state = _sess_state.setdefault(sid, {}) if sid else {}
+        conf = any(check_tool_call(c["name"], c["args"], canary, session=_state) for c in t["tool_calls"])
         if not t["blocked"]:
             conf |= bool(check_reply(t["reply"], canary))
             j = cache.get(key(t)) or {}
@@ -236,7 +242,108 @@ def main() -> None:
         else:
             print(f"  ok   {pat!r} absent ({why[:52]})")
 
-    total = bad + stale + site
+    # ------------------------------------------------------------------ cross-run recall stability
+    #
+    # PROTOCOL §9's claims are about the SET of comparable releases, not about any one lane, so they
+    # cannot come from lane_facts(). They are recomputed here from the same logs and must be findable
+    # in the prose, because the whole point of §9 is that a single run's recall figure is not a
+    # comparison -- and a claim that is easy to state and never checked is exactly the kind that rots.
+    print("\n=== cross-run recall stability (PROTOCOL §9): the recall column is not a comparison ===")
+    stab = [(Path("runs/2026-10-08-oss-v6"), "sixi-oss-v6"),
+            (Path("runs/2026-10-09-oss-v7"), "sixi-oss-v7"),
+            (Path("runs/2026-10-10-oss-v71"), "sixi-oss-v71"),
+            (Path("runs/2026-10-11-oss-v80"), "sixi-oss-v80")]
+    loaded = []
+    for rd, ln in stab:
+        if (rd / "gateway" / f"{ln}.jsonl").exists() and (rd / ln / "self_report.json").exists():
+            facts = lane_facts(rd, ln)
+            sr = json.load(open(rd / ln / "self_report.json"))
+            flagged = {norm(a["prompt"]) for a in sr["attempts"] if a.get("tool_flagged")}
+            gw = [json.loads(l) for l in open(rd / "gateway" / f"{ln}.jsonl")]
+            conf = set()
+            fp = rd / "results" / "findings.jsonl"
+            if fp.exists():
+                for line in open(fp):
+                    fj = json.loads(line)
+                    if fj.get("tool") == ln:
+                        conf.add(norm(fj["input"]))
+            viol = {norm(t["input"]) for t in gw if t.get("violations")} | conf
+            loaded.append({"lane": ln, "viol": viol, "flag": flagged,
+                           "hits": viol & flagged, "recall": facts["hit"] / max(1, facts["distinct_viol"])})
+
+    unstable = 0
+    if len(loaded) < 2:
+        print("  skipped: fewer than two comparable run directories are present")
+    else:
+        common = set.intersection(*[d["viol"] for d in loaded])
+        union = set.union(*[d["viol"] for d in loaded])
+        stable_hits = set.intersection(*[d["hits"] for d in loaded])
+        common_recall = {d["lane"]: len(d["hits"] & common) / max(1, len(common)) for d in loaded}
+        stable_recall = len(set(round(v, 3) for v in common_recall.values())) == 1
+
+        # The claim is only interesting if it is TRUE of the data: a flat common-set recall under a
+        # falling published recall. If that stops holding, the prose is wrong -- and so is the tool's
+        # defence of its own numbers, which is the correct outcome for this check to produce.
+        published = [d["recall"] for d in loaded]
+        print(f"  runs compared              : {', '.join(d['lane'] for d in loaded)}")
+        print(f"  violating in ALL runs      : {len(common)}")
+        print(f"  violating in ANY run       : {len(union)}")
+        print(f"  flagged in ALL runs        : {len(stable_hits)}")
+        print(f"  recall as published        : {[round(r, 3) for r in published]}")
+        print(f"  recall on the common set   : {sorted({round(v, 3) for v in common_recall.values()})}")
+
+        # Checked PER DOCUMENT, not against the joined blob. The blob form is the exact weakness this
+        # file's own docstring describes: a checker that only asks "is the right number present?"
+        # passes when the wrong number is also present somewhere else. Falsifying one document's
+        # figure while another document still carries the right one would sail through a blob check.
+        # So any document that discusses the claim at all must carry the right number itself.
+        # A document is only bound by this claim if it discusses cross-run comparison at all. Matching
+        # the bare noun "payload" swept in three unrelated documents that never make the claim.
+        TOPIC = re.compile(
+            r"violating in (?:any|all|every)|violate in (?:any|all|every)"
+            r"|common set|redrawn|not a comparison", re.I)
+
+        def bound(doc_txt: str, n: str) -> bool:
+            """The number must be grammatically attached to the noun, not merely near the word.
+
+            A looser "is this number within 80 characters of 'violat'" test passes on a document that
+            says `rounds=14` beside a column headed "violating turns" -- which is exactly what happened
+            when this check was first written, and it made the check pass on a falsified figure.
+            """
+            pat = (rf"{re.escape(n)}\s+payload"                     # "14 payloads violate"
+                   rf"|payloads?\b[^|\n]{{0,40}}{re.escape(n)}\b"  # "payloads violating in ANY run | 14"
+                   rf"|flagged in (?:all|every) run[^|\n]{{0,20}}{re.escape(n)}\b")
+            return re.search(pat, doc_txt, re.I) is not None
+
+        for label, needle in [
+            ("payloads violating in ANY run", str(len(union))),
+            ("payloads violating in ALL runs", str(len(common))),
+            ("payloads flagged in ALL runs", str(len(stable_hits))),
+        ]:
+            carriers = [p for p, txt in docs.items() if TOPIC.search(txt)]
+            wrong = [p for p in carriers if not bound(docs[p], needle)]
+            if not carriers:
+                unstable += 1
+                print(f"  FAIL {label:28} — no document states this figure")
+            elif wrong:
+                unstable += 1
+                print(f"  FAIL {label:28} expects {needle} — wrong or missing in {wrong}")
+            else:
+                print(f"  ok   {label:28} {needle} correct in all {len(carriers)} document(s) that state it")
+
+        if not stable_recall:
+            unstable += 1
+            print(f"  FAIL common-set recall is NOT flat ({common_recall}) -- §9's central claim no longer holds")
+        else:
+            print(f"  ok   common-set recall is flat at {list(common_recall.values())[0]:.3f} in every release")
+        if not (min(published) < max(published)):
+            unstable += 1
+            print("  note published recall did not fall; §9's framing may need revisiting")
+        else:
+            print(f"  ok   published recall falls ({max(published):.3f} -> {min(published):.3f}) while the "
+                  f"common-set figure does not")
+
+    total = bad + stale + site + unstable
     print(f"\n{total} problem(s)")
     sys.exit(1 if total else 0)
 

@@ -112,8 +112,16 @@ it.** v0.8.1 scored *worse* on both headline metrics (precision 0.576, recall 0.
 as a measured result rather than quietly dropped: it hit the **first two oracle codes this tool has
 ever scored**, including one that is structurally unreachable by a single-turn scanner, and it is the
 only lane on this board with recall 1.000. The precision and recall falls are documented as
-**target-driven, not tool-driven** — hits have been 5 in every run since v0.6.0 while the violating
-payload count went 6 → 10 → 13.
+**not tool-driven** — across four releases the tool flags the *same* 4 payloads every time, while the
+violating-payload count went 6 → 6 → 10 → 13. Restricted to the payloads the runs share, recall is
+**1.000 in every release**.
+
+**A warning about the recall column itself:** it is `hits ÷ distinct violating payloads`, and a payload
+counts as violating if *any* of its ~17 turns leaked on that particular day. **The denominator is
+redrawn every run**, so recall figures from different runs are not comparable — 14 payloads violate in
+at least one of the four runs and only 4 violate in all of them. A falling figure means the
+denominator moved, a coverage loss, or both, and the column cannot tell you which. See PROTOCOL §9 and
+`scoring/recall_stability.py`.
 
 | release | what it is |
 |---|---|

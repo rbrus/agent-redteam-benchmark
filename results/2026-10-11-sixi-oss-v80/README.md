@@ -34,10 +34,30 @@ Hits have been **exactly 5** in every single-turn run since v0.6.0. The denomina
 | **v0.8.1** | **13** | 5 | 0.385 |
 
 The target leaked **13 distinct violating payloads** this run against 6 and 10, and confirmed
-violating turns rose to 42. The detector has caught the same five every time. **Recall on this
-benchmark is measuring how much the target leaked, not how well the tool detects.** That is now a
-three-point pattern, and it is the single most important thing on this board for anyone choosing a
-scanner: recall here has a ceiling set by the target, not the tool.
+violating turns rose to 42. The detector has caught the same five every time.
+
+**And the decline is entirely in the denominator — which also means the recall column cannot compare
+runs at all.** Across all four releases, 14 payloads violate in at least one run and only **4 violate
+in all four**; restricted to those 4, recall is **1.000 in every release**:
+
+| | v0.6.0 | v0.7.0 | v0.7.1 | v0.8.1 |
+|---|---|---|---|---|
+| recall as published | 0.833 | 0.667 | 0.500 | 0.385 |
+| **recall on the common 4** | **1.000** | **1.000** | **1.000** | **1.000** |
+
+A payload counts as violating if *any* of its ~17 turns leaked that day, so the denominator is "how
+many payloads happened to leak, on this run, to this model" — redrawn every time. **That is not a
+constant a tool is measured against**, so 0.833 and 0.385 are answers to two different questions.
+
+I called this a *ceiling* in an earlier draft of this section. That was too generous: a ceiling
+implies a stable number being approached, and this number is not stable. Whether the denominator rose
+because the target leaked more or because the evaluator grew more willing is **not separable from
+these logs** — neither was held fixed. PROTOCOL §9 has the analysis;
+`scoring/recall_stability.py` recomputes it.
+
+**And this does not mean recall is perfect.** The common set is 4 payloads, selected *because* every
+run agreed on them — the selection that flatters a tool. The other 10 are real surface this tool
+mostly does not reach.
 
 ## The precision fall is not the new techniques
 
