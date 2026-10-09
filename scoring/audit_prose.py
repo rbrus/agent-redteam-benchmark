@@ -76,9 +76,15 @@ def lane_facts(run: Path, label: str) -> dict:
     # {} per turn silently disables every cumulative oracle. This file had the same defect as
     # verify_published.py; both were found by the same disagreement, and both are fixed together.
     _states = SessionStates()
+    _said: dict[str, str] = {}
     for t in turns:
         _state = _states.for_turn(t)
-        conf = any(check_tool_call(c["name"], c["args"], canary, session=_state) for c in t["tool_calls"])
+        sid = t.get("session")
+        if sid:
+            _said[sid] = f"{_said.get(sid, '')}\n{t.get('input', '')}"
+        _taint = _said.get(sid, "") if sid else ""
+        conf = any(check_tool_call(c["name"], c["args"], canary, session=_state, taint=_taint)
+                   for c in t["tool_calls"])
         if not t["blocked"]:
             conf |= bool(check_reply(t["reply"], canary))
             j = cache.get(key(t)) or {}

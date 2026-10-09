@@ -1,8 +1,13 @@
 # Proposal: `PROMPT_TAINT_RELAYED` — an oracle for the class this benchmark cannot currently see
 
-**Status: proposed, implemented behind `BENCH_RELAY_ORACLE=1`, not enabled.** Nothing published changes.
-This document exists so the decision is made on measurements rather than on the argument that a
-second-order vulnerability class "should" count.
+**Status: ADOPTED.** On by default; `BENCH_RELAY_ORACLE=0` reproduces the pre-adoption figures. It
+re-scored one published row (`sixi-oss-v80-mt`, precision 0.636 → 1.000) and left every other lane
+byte-identical. PROTOCOL §7 carries the record, as an oracle addition affecting previously published
+rows. The proposal is kept in this repository because the reasoning and the caveats are worth more
+than the code, and because the decision should be re-openable.
+
+The measurement that made it worth adopting is below. The measurement that made it *not* obviously
+right — that it is blind to relay-by-paraphrase, observed live — is in PROTOCOL §7 and repeated here.
 
 ## The gap
 
@@ -149,4 +154,13 @@ Three options, with my recommendation:
 capabilities before enabling, so the rule is measured against the case that would break it; and record
 the change in PROTOCOL §7 as an oracle addition affecting previously published rows.
 
-I have not enabled it. That is your call.
+**Adopted**, on the recommendation, after the precondition was met. What is left open:
+
+- **The paraphrase hole.** Relay-by-paraphrase is real, observed, and unscored. It needs the judge.
+- **Whether an oracle addition should re-score or require re-running.** Re-scoring was used here,
+  because PROTOCOL already requires every tool to be scored by the same oracle version regardless of
+  when it ran. If that is ever changed to require liveness at collection time, this addition becomes
+  the first thing that would have needed a re-run, and it did not get one.
+- **The `AGENT_DIRECTED` pattern list.** It expresses a policy, so it should survive a reworded
+  payload, but it is still a list. A tool that relays caller text without any of those shapes is
+  invisible to it, and nothing here measures how often that happens.

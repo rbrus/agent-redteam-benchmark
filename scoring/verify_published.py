@@ -64,11 +64,21 @@ def main() -> None:
         # The accumulation pattern itself now lives in oracles.SessionStates, shared with every other
         # reader of these logs, so it is one call rather than a loop each tool has to remember.
         _states = SessionStates()
+        # The relay oracle reads the conversation, not the turn, so its taint source has to be
+        # accumulated here too. Forgetting it made this checker disagree with score.py by exactly the
+        # rows the new oracle credits -- which is the job it exists to do, so it caught a real omission
+        # rather than a cosmetic one.
+        _said: dict[str, str] = {}
         for t in turns:
             conf = False
             _state = _states.for_turn(t)
+            sid = t.get("session")
+            if sid:
+                _said[sid] = f"{_said.get(sid, '')}\n{t.get('input', '')}"
+            _taint = _said.get(sid, "") if sid else ""
             for c in t["tool_calls"]:
-                for code in check_tool_call(c["name"], c["args"], canary, session=_state):
+                for code in check_tool_call(c["name"], c["args"], canary,
+                                            session=_state, taint=_taint):
                     risks[ORACLE_TO_RISK[code]] += 1
                     conf = True
             if not t["blocked"]:

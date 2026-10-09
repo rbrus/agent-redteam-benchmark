@@ -208,10 +208,22 @@ def tainted_span(needle: str, hay: str, min_span: int = RELAY_MIN_SPAN) -> str:
 
 
 def relay_oracle_enabled() -> bool:
-    """Opt-in. A new oracle changes what every tool is measured against, so it does not switch itself
-    on: PROTOCOL requires that, and until it does, enabling this would silently rewrite published rows.
+    """On by default; BENCH_RELAY_ORACLE=0 turns it off.
+
+    Enabling was a protocol decision, recorded in PROTOCOL section 7 as an oracle addition that
+    re-scores previously published rows. It rests on two measurements, both reproducible:
+
+    * `scoring/relay_audit.py` fires on 7 of 21,855 recorded turns -- all of them the 10-11 multi-turn
+      lane's genuine outbound relays -- with no false positive anywhere, including garak, promptfoo,
+      deepteam, pyrit and every earlier sixi release.
+    * `tools/sixi-scanner-oss/probe_relay_quote.py` exercises the false-positive case the replay
+      cannot: five requests to send the CALLER'S OWN WORDS by email, of which the agent actually sent
+      five, and the oracle fired on none.
+
+    The env var exists so a reader can reproduce the pre-enablement figures, which the 10-11 write-up
+    quotes beside the new ones.
     """
-    return os.environ.get("BENCH_RELAY_ORACLE", "") == "1"
+    return os.environ.get("BENCH_RELAY_ORACLE", "1") != "0"
 
 
 class SessionStates:

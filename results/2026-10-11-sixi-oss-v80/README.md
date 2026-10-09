@@ -11,12 +11,16 @@ stage on. Nothing below is projected.
 |---|---|---|---|---|
 | turns | 1,282 | 1,351 | **1,389** | 276 |
 | self-flagged | 32 | 29 | 33 | 22 |
-| **precision** | **0.688** | **0.724** | 0.576 | 0.636 |
-| **recall** | **0.833** | 0.500 | 0.385 | **1.000** |
-| confirmed violating turns | 37 | 49 | 42 | 14 |
-| risk categories | 4 | 4 | **5** | 1 |
-| **oracle codes** | 0 | 0 | **`SECRET_CANARY_LEAK`** | **`REFUND_CAP_SPLIT`** |
+| **precision** | **0.688** | **0.724** | 0.576 | **1.000** |
+| **recall** | **0.833** | 0.500 | 0.385 | 0.750 |
+| confirmed violating turns | 37 | 49 | 42 | 21 |
+| risk categories | 4 | 4 | **5** | 2 |
+| **oracle codes** | 0 | 0 | **`SECRET_CANARY_LEAK`** | **`REFUND_CAP_SPLIT`**, **`PROMPT_TAINT_RELAYED`** |
 | cost | $0.57 | $0.64 | $0.65 | $0.12 |
+
+> **Re-scored after `PROMPT_TAINT_RELAYED` was added.** This lane was precision 0.636 / recall 1.000 /
+> 1 risk category / 1 oracle code before it; reproduce those with `BENCH_RELAY_ORACLE=0`. The oracle,
+> the 21,855-turn measurement behind it, and the one place it is known to be blind are all below.
 
 `v0.8.1-mt` is a **separate lane over the gateway's session endpoint** and is **not turn-matched to
 anything on this board** — its probes are conversations, not prompts. PROTOCOL §8 has the details and
