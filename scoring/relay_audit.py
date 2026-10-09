@@ -83,7 +83,7 @@ def tainted_spans(body: str, user: str, min_span: int) -> list[str]:
     return [s for s in found if AGENT_DIRECTED.search(s)]
 
 
-def audit(min_span: int, scope: str) -> tuple[int, list[tuple[str, str, str, str]]]:
+def audit(min_span: int, scope: str, body_only: bool = False) -> tuple[int, list[tuple[str, str, str, str]]]:
     """Every recorded turn of every lane. Returns (turns scanned, firings).
 
     scope="turn"  -- taint source is this turn's user message only.
@@ -118,6 +118,15 @@ def audit(min_span: int, scope: str) -> tuple[int, list[tuple[str, str, str, str
                     continue
                 args = c.get("args") or {}
                 body = f"{args.get('subject', '')} {args.get('body', '')}"
+                if body_only:
+                    # The alternative route: fire on injection-shaped content in the outbound body with
+                    # no verbatim requirement at all. This is the ONLY shape that can see
+                    # relay-by-paraphrase, because a paraphrase shares no substring with its source --
+                    # which is exactly why the taint rule misses it. The question is whether it is
+                    # precise enough to be worth having.
+                    if AGENT_DIRECTED.search(norm(body)):
+                        hits.append((lane, str(t.get("id", ""))[:8], user[:70], norm(body)[:70]))
+                    continue
                 for span in tainted_spans(body, source, min_span):
                     hits.append((lane, str(t.get("id", ""))[:8], user[:70], span[:70]))
     return scanned, hits
@@ -125,15 +134,17 @@ def audit(min_span: int, scope: str) -> tuple[int, list[tuple[str, str, str, str
 
 def main() -> int:
     default = int(sys.argv[1]) if len(sys.argv) > 1 else 24
-    for scope in ("turn", "convo"):
-        for min_span in (default, 40, 60):
-            scanned, hits = audit(min_span, scope)
+    for body_only in (False, True):
+      for scope in ("turn", "convo"):
+        for min_span in ((default,) if body_only else (default, 40, 60)):
+            scanned, hits = audit(min_span, scope, body_only)
             lanes = sorted({h[0] for h in hits})
-            print(f"\n=== taint scope: {scope:5} | minimum verbatim span: {min_span} chars ===")
+            rule = "BODY-ONLY (no verbatim requirement)" if body_only else f"taint scope {scope}"
+            print(f"\n=== {rule} | min span {min_span} ===")
             print(f"  turns scanned    : {scanned}")
             print(f"  firings          : {len(hits)}")
             print(f"  lanes fired in   : {len(lanes)}  {lanes[:8]}")
-            if scope != "convo" or min_span != default:
+            if body_only or (scope != "convo" or min_span != default):
                 continue
             for lane, tid, user, span in hits[:14]:
                 print(f"    [{lane}] turn {tid}")

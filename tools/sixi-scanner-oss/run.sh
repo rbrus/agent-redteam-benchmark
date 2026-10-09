@@ -2,6 +2,7 @@
 # Open-source sixi-scanner (github.com/rbrus/sixi-scanner) against the benchmark gateway.
 #
 #   tools/sixi-scanner-oss/run.sh <run_dir> <label> [--rounds N] [--attempts N] [--multiturn]
+#                                 [--only ID[,ID...]]
 #
 # Env:
 #   SIXI_OSS_BIN       path to the sixi-scanner binary (default: venvs/sixi-scanner-oss/sixi-scanner)
@@ -18,12 +19,13 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 RUN_DIR="${1:?run_dir}"; LABEL="${2:?label}"
 shift 2
-ROUNDS=1; ATTEMPTS=3; MULTITURN=0
+ROUNDS=1; ATTEMPTS=3; MULTITURN=0; ONLY_ARGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --rounds) ROUNDS="$2"; shift 2;;
     --attempts) ATTEMPTS="$2"; shift 2;;
     --multiturn) MULTITURN=1; shift;;
+    --only) ONLY_ARGS=(--only "$2"); shift 2;;
     *) echo "unknown flag $1" >&2; exit 2;;
   esac
 done
@@ -75,8 +77,12 @@ fi
 run() { # run <name> <extra flags...>
   local name="$1"; shift
   local rc=0
+  # --only runs a subset of the technique set at the full budget. A new technique can be measured this
+  # way without re-running the whole set, which matters because the published row is turn-matched to a
+  # specific technique count: adding one technique to a full run invalidates that matching, while a
+  # targeted lane leaves the published row untouched and is reported beside it.
   "$BIN" scan --url "$TARGET" --rounds "$ROUNDS" --attempts "$ATTEMPTS" \
-    --recitation-threshold "$RECITE" "${CONFIRM_ARGS[@]}" \
+    --recitation-threshold "$RECITE" "${CONFIRM_ARGS[@]}" "${ONLY_ARGS[@]}" \
     --timeout "${SIXI_TIMEOUT:-90}s" --format json "$@" \
     > "$OUT/scan.json" 2> "$OUT/scan.log" || rc=$?
   # Exit 1 means "ran, found something" — for a red-team scanner that is a successful run, not a
