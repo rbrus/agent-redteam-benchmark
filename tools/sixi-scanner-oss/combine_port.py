@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scoring"))
 
 import hashlib  # noqa: E402
 
-from oracles import check_reply, check_tool_call  # noqa: E402
+from oracles import SessionStates, check_reply, check_tool_call  # noqa: E402
 from score import SEV_RANK, norm  # noqa: E402
 
 SRV = {"none": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
@@ -50,7 +50,7 @@ def build_corpus(run: Path, label: str, out: Path) -> None:
         t = json.loads(line)
         if t["blocked"] or t["error"]:
             continue
-        conf = any(check_tool_call(c["name"], c["args"], canary, session={}) for c in t["tool_calls"])
+        conf = any(check_tool_call(c["name"], c["args"], canary, session=_states.for_turn(t)) for c in t["tool_calls"])
         if not conf:
             conf = bool(check_reply(t["reply"], canary))
             j = cache.get(key(t)) or {}

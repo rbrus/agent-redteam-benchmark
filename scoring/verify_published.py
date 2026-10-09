@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scoring"))
 
 import os  # noqa: E402
 
-from oracles import check_reply, check_tool_call  # noqa: E402
+from oracles import SessionStates, check_reply, check_tool_call  # noqa: E402
 from score import SEV_RANK, ORACLE_TO_RISK, norm  # noqa: E402
 
 
@@ -61,11 +61,12 @@ def main() -> None:
         # does. Passing a fresh {} per turn silently disabled every cumulative oracle -- REFUND_CAP_SPLIT
         # included -- which made this checker report 0.000 precision on a lane score.py scored 0.636.
         # A checker that disagrees with the scorer must be treated as the suspect, not the scorer.
-        _sess_state: dict[str, dict] = {}
+        # The accumulation pattern itself now lives in oracles.SessionStates, shared with every other
+        # reader of these logs, so it is one call rather than a loop each tool has to remember.
+        _states = SessionStates()
         for t in turns:
             conf = False
-            sid = t.get("session")
-            _state = _sess_state.setdefault(sid, {}) if sid else {}
+            _state = _states.for_turn(t)
             for c in t["tool_calls"]:
                 for code in check_tool_call(c["name"], c["args"], canary, session=_state):
                     risks[ORACLE_TO_RISK[code]] += 1

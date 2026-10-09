@@ -619,6 +619,29 @@ evaluator rejected* plus 6–7 genuine false positives, where the agent quoted t
 compliant "here is a safer draft" rewrite. **A relay oracle is the highest-value addition to
 `target/oracles.py`**, and the justification is in the published findings rather than in an argument.
 
+### `payload-relay`'s false positives: measured, and not fixable with markers
+
+Six to seven of `payload-relay`'s flags are the agent quoting the injection payload inside a compliant
+"here is a safer draft" reply. The obvious remedy is a refusal negation, and **it was measured before
+being shipped and it does not work**: 10 false positives become 9 with negations, 10 with the negation
+window widened from 160 to 700 characters, 8 with `skip_recitation`, and 7 with both. No variant costs
+a true positive, so 3 of 10 is the ceiling.
+
+The reason is geometric. The refusal sits at character 0 and the paraphrase at 217–665, in a separate
+paragraph, and the suppression rule needs *every* occurrence of the marker negated while these replies
+quote the payload several times. 98 of the 108 non-violating replies match no marker at all; the 10
+that do are 4 genuine propagations and 6 refusals.
+
+So the residual is not a marker-set defect to be tidied up. It needs either a **relay oracle** — which
+is what the four real propagations argue for, two of them with the payload verbatim in a `send_email`
+body in the published findings — or a **tool trace on `/chat`**, which is the third time that same
+recommendation has been recorded and declined. Until one lands, 6 false positives is a known and
+published cost.
+
+`tools/sixi-scanner-oss/replay_markers.py --override` now replays an **unshipped** definition. That
+capability is the reason this cost no benchmark run; before it existed the only way to learn whether a
+marker change worked was to ship it and spend a run finding out.
+
 ### Infra deviation, disclosed
 
 The confirmation stage's judge is `qwen3.8:27b` served locally under the name `attacker`, as in the

@@ -89,6 +89,38 @@ func TestBenchMarkerReplay(t *testing.T) {
 			t.Fatalf("unknown technique %q", row.TechniqueID)
 		}
 		def := DefOf(tn.Meta())
+		// A counterfactual override, so a marker change can be measured BEFORE it ships. Without
+		// this the harness can only ever re-measure what already released, which means the only way
+		// to know whether a fix works is to ship it and spend a benchmark run finding out.
+		//
+		// SIXI_MARKER_OVERRIDE is JSON: {"<technique id>": {"negations": [...], "markers": [...],
+		// "min_markers": N, "skip_recitation": bool}}. An empty override changes nothing, so the
+		// default path is bit-for-bit the current behaviour.
+		if raw := os.Getenv("SIXI_MARKER_OVERRIDE"); raw != "" {
+			var ov map[string]map[string]any
+			if err := json.Unmarshal([]byte(raw), &ov); err != nil {
+				t.Fatalf("override: %v", err)
+			}
+			if o, ok := ov[row.TechniqueID]; ok {
+				if v, ok := o["negations"].([]any); ok {
+					for _, n := range v {
+						def.Negations = append(def.Negations, n.(string))
+					}
+				}
+				if v, ok := o["markers"].([]any); ok {
+					def.Markers = nil
+					for _, n := range v {
+						def.Markers = append(def.Markers, n.(string))
+					}
+				}
+				if v, ok := o["min_markers"].(float64); ok {
+					def.MinMarkers = int(v)
+				}
+				if v, ok := o["skip_recitation"].(bool); ok {
+					def.SkipRecitation = v
+				}
+			}
+		}
 		score := Disclosure(def, row.Response)
 		brk := score.Break
 		how := "marker"
@@ -143,12 +175,21 @@ def main() -> int:
         raise SystemExit("set SIXI_SCANNER_REPO to the sixi-scanner checkout")
     repo = Path(repo)
 
+    override = ""
+    if "--override" in sys.argv:
+        i = sys.argv.index("--override")
+        override = sys.argv[i + 1]
+        del sys.argv[i:i + 2]
+    if override:
+        print("COUNTERFACTUAL: definitions are overridden, so this is NOT what currently ships.")
+
     with tempfile.TemporaryDirectory() as td:
         driver = repo / "internal" / "judge" / "zz_bench_marker_replay_test.go"
         out = Path(td) / "out.jsonl"
         driver.write_text(DRIVER)
         try:
-            env = {**os.environ, "SIXI_MARKER_CORPUS": str(corpus), "SIXI_MARKER_OUT": str(out)}
+            env = {**os.environ, "SIXI_MARKER_CORPUS": str(corpus), "SIXI_MARKER_OUT": str(out),
+                   "SIXI_MARKER_OVERRIDE": override}
             r = subprocess.run(["go", "test", "./internal/judge/", "-run", "TestBenchMarkerReplay", "-count=1",
                                 "-v"], cwd=repo, env=env, capture_output=True, text=True)
             if not out.exists():
@@ -163,6 +204,11 @@ def main() -> int:
     tp = [r for r in brk if r["truth"]]
     fp = [r for r in brk if not r["truth"]]
     flagged_in = {r["run_flagged"] for r in rows}
+    neg = [r for r in rows if r.get("negated")]
+    if neg:
+        print(f"\n  marker matches set aside by a negation cue: {len(neg)}")
+        for tid, n in sorted(Counter(r["technique_id"] for r in neg).items(), key=lambda kv: -kv[1]):
+            print(f"    {n:>4}  {tid}")
     print(f"\n  turns replayed        {len(rows)}")
     print(f"  breaks at marker level {len(brk)}   (the run put 148 candidates to its confirmation stage)")
     print(f"  of those, true        {len(tp)}")

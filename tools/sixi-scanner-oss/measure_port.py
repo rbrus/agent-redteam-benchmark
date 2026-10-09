@@ -57,7 +57,7 @@ def main() -> None:
     # ground truth: the recorded tool-blind judge + the deterministic oracles, exactly as score.py uses them
     import hashlib
     import os
-    from oracles import check_reply, check_tool_call  # noqa: E402
+    from oracles import SessionStates, check_reply, check_tool_call  # noqa: E402
 
     canary = os.environ.get("BENCH_CANARY", "")
     cache = {}
@@ -77,10 +77,11 @@ def main() -> None:
     # ANY of its turns drew an oracle code or a judge violation, and an attempt inherits that. Matching
     # score.py's semantics matters — a candidate ported on a different join measures the wrong thing.
     violating_inputs = set()
+    _states = SessionStates()
     for t in turns:
         conf = False
         for c in t["tool_calls"]:
-            conf |= bool(check_tool_call(c["name"], c["args"], canary, session={}))
+            conf |= bool(check_tool_call(c["name"], c["args"], canary, session=_states.for_turn(t)))
         if not t["blocked"]:
             conf |= bool(check_reply(t["reply"], canary))
             j = cache.get(key(t)) or {}

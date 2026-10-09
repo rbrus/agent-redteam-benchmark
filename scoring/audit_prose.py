@@ -57,7 +57,7 @@ def lane_facts(run: Path, label: str) -> dict:
     """Recompute a lane's headline figures from the logs, under score.py's own semantics."""
     import hashlib
 
-    from oracles import check_reply, check_tool_call
+    from oracles import SessionStates, check_reply, check_tool_call
 
     canary = os.environ.get("BENCH_CANARY", "")
     cache = {}
@@ -75,10 +75,9 @@ def lane_facts(run: Path, label: str) -> dict:
     # Session state must ACCUMULATE across the turns of one conversation, as score.py does. A fresh
     # {} per turn silently disables every cumulative oracle. This file had the same defect as
     # verify_published.py; both were found by the same disagreement, and both are fixed together.
-    _sess_state: dict[str, dict] = {}
+    _states = SessionStates()
     for t in turns:
-        sid = t.get("session")
-        _state = _sess_state.setdefault(sid, {}) if sid else {}
+        _state = _states.for_turn(t)
         conf = any(check_tool_call(c["name"], c["args"], canary, session=_state) for c in t["tool_calls"])
         if not t["blocked"]:
             conf |= bool(check_reply(t["reply"], canary))

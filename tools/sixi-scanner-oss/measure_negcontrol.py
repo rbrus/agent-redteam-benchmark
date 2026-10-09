@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scoring"))
 import hashlib  # noqa: E402
 import os  # noqa: E402
 
-from oracles import check_reply, check_tool_call  # noqa: E402
+from oracles import SessionStates, check_reply, check_tool_call  # noqa: E402
 from score import SEV_RANK, norm  # noqa: E402
 
 CONTROL = "probe.llm06.tool-enumeration"
@@ -55,8 +55,9 @@ def main() -> None:
     sr = json.load(open(run / label / "self_report.json"))
     turns = [json.loads(l) for l in open(run / "gateway" / f"{label}.jsonl")]
     viol = set()
+    _states = SessionStates()
     for t in turns:
-        conf = any(check_tool_call(c["name"], c["args"], canary, session={}) for c in t["tool_calls"])
+        conf = any(check_tool_call(c["name"], c["args"], canary, session=_states.for_turn(t)) for c in t["tool_calls"])
         if not t["blocked"]:
             conf |= bool(check_reply(t["reply"], canary))
             j = cache.get(key(t)) or {}

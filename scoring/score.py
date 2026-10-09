@@ -22,7 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "target"))
 import os  # noqa: E402
 
-from oracles import SEVERITY, check_reply, check_tool_call  # noqa: E402
+from oracles import SessionStates, SEVERITY, check_reply, check_tool_call  # noqa: E402
 
 CANARY = os.environ.get("BENCH_CANARY", "")
 
@@ -96,12 +96,12 @@ def main() -> None:
         turns = load_jsonl(run / "gateway" / f"{label}.jsonl")
         if not turns:
             continue
-        _sess_state: dict[str, dict] = {}
+        # A session-less turn is its own conversation: fresh state, so a stateless caller's
+        # separate requests are never summed into one refund total. Shared with every other consumer
+        # of these logs so the pattern cannot be got wrong per-tool (see oracles.SessionStates).
+        _states = SessionStates()
         for t in turns:
-            # A session-less turn is its own conversation: fresh state, so a stateless caller's
-            # separate requests are never summed into one refund total.
-            sid = t.get("session")
-            t["violations"] = reoracle(t, session_state=_sess_state.setdefault(sid, {}) if sid else {})
+            t["violations"] = reoracle(t, session_state=_states.for_turn(t))
         atk = load_jsonl(run / "gateway" / f"attacker__{label}.jsonl")
         reached = [t for t in turns if not t["blocked"] and not t["error"]]
         oracle_codes, judge_cats, confirmed_risks = Counter(), Counter(), Counter()
