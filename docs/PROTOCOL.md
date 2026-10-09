@@ -642,6 +642,29 @@ published cost.
 capability is the reason this cost no benchmark run; before it existed the only way to learn whether a
 marker change worked was to ship it and spend a run finding out.
 
+### A relay oracle is proposed, not adopted
+
+The four propagations above are the strongest argument in this repository for a new oracle, and the
+proposal now exists in measured form: `docs/PROPOSAL-relay-oracle.md`, with the rule, the replay over
+21,855 recorded turns (`scoring/relay_audit.py`), and the re-scored effect on the 10-11 rows.
+
+**It is not enabled.** `PROMPT_TAINT_RELAYED` exists in `target/oracles.py` behind `BENCH_RELAY_ORACLE=1`,
+and the default path is byte-identical — verified on `sixi-oss-v6`, `sixi-oss-v71`, `sixi-oss-v4` and
+`sixi-oss-v80`. Turning it on would re-score every published row, so it is a protocol decision rather
+than a code one, and PROTOCOL §7 requires that such a decision be recorded rather than taken quietly.
+
+Two findings from writing it are worth keeping even if it is never enabled, because both are about how
+easy it is to write a rule that looks like it works:
+
+- **A turn-local taint rule catches 3 of the 7 real relay events and misses the other 4**, because the
+  payload is planted on one turn and relayed on another. That is the defining shape of the class. The
+  rule therefore reads the conversation, and a spot check on the turn that fires would not have
+  revealed the gap.
+- **Zero false positives in 21,855 turns is an optimistic estimate.** Those turns contain no
+  legitimate relay-shaped request. The case that would break this rule — a user asking the agent to
+  quote their own words into an email — is not in the logs, which is a gap in the evidence rather than
+  a result.
+
 ### Infra deviation, disclosed
 
 The confirmation stage's judge is `qwen3.8:27b` served locally under the name `attacker`, as in the
