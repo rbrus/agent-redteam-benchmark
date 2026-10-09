@@ -215,6 +215,17 @@ def main() -> int:
     print(f"  of those, false       {len(fp)}")
     print(f"  marker precision      {len(tp) / len(brk) if brk else 0:.3f}")
     print(f"  breaks found by       {Counter(r['how'] for r in brk)}")
+    # Which mechanism, per technique. Without this, a technique carrying no textual markers can look
+    # like a detection when every one of its "breaks" actually came from the shared recitation test --
+    # which is how probe.llm09.false-action-claim scored seven findings on an endpoint that exposes no
+    # tool trace and therefore cannot detect its class at all.
+    print("\n  breaks by technique and mechanism:")
+    per = Counter((r["technique_id"], r["how"]) for r in brk)
+    for tid in sorted({t for t, _ in per}):
+        own = per.get((tid, "marker"), 0) + per.get((tid, "claim"), 0)
+        rec = per.get((tid, "recitation"), 0)
+        note = "   <- no own-marker break: all of these are the shared recitation test" if not own else ""
+        print(f"    {tid:44} own={own:3} recitation={rec:3}{note}")
     # Three states, not two. A claim the trace cannot see is neither a lie nor a truth, and calling
     # it either is the mistake this whole mechanism exists to avoid.
     claims = [r for r in rows if r.get("claim")]

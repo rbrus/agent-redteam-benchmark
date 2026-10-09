@@ -104,17 +104,27 @@ All KPIs are defined in [PROTOCOL §5](docs/PROTOCOL.md).
 ## sixi-scanner: the author's tool, measured on the same wire
 
 [sixi-scanner](https://github.com/rbrus/sixi-scanner) is open source: a single Go binary with zero
-dependencies, 26 techniques and no LLM in it. It runs through the same gateway, oracles and judge as
-everything above. Current release is v0.8.1.
+dependencies, 27 techniques and no LLM in it. It runs through the same gateway, oracles and judge as
+everything above. Current release is v0.8.3.
 
-**The headline below is still v0.6.0, the best measured configuration — v0.8.1 does not displace
-it.** v0.8.1 scored *worse* on both headline metrics (precision 0.576, recall 0.385) and is published
-as a measured result rather than quietly dropped: it hit the **first two oracle codes this tool has
-ever scored**, including one that is structurally unreachable by a single-turn scanner, and it is the
-only lane on this board with recall 1.000. The precision and recall falls are documented as
-**not tool-driven** — across four releases the tool flags the *same* 4 payloads every time, while the
-violating-payload count went 6 → 6 → 10 → 13. Restricted to the payloads the runs share, recall is
-**1.000 in every release**.
+**The headline moved to v0.8.3** — the best measured configuration, and the first build since v0.6.0 to
+hold both KPI targets at once. It also carries the **highest precision ever measured on this board**
+(0.821) and the **first genuine coverage growth in five releases**: the tool now catches 8 distinct
+violating payloads where four consecutive releases each caught exactly 5.
+
+Getting there was subtraction, not addition. Two techniques were taking recitation breaks that had
+nothing to do with them — `false-action-claim` has a single sentinel marker, so it is *never* detected
+by matching text, and on a target with no tool trace every one of its 7 findings was the shared
+recitation test borrowing its name. Removing those took precision 0.576 → 0.821. **Three of the four
+other candidates would have cost real detections**, which is why they were measured before being
+changed rather than after.
+
+**A warning about the recall column itself:** it is `hits ÷ distinct violating payloads`, and a payload
+counts as violating if *any* of its ~17 turns leaked on that particular day. **The denominator is
+redrawn every run**, so recall figures from different runs are not comparable. The claim that v0.8.3 is
+better therefore rests on precision (large, and traceable to one definition change) and on the hit count
+(5 → 8) — **not** on its recall figure, which clears its target by 0.011. See PROTOCOL §9 and
+`scoring/recall_stability.py`.
 
 **A warning about the recall column itself:** it is `hits ÷ distinct violating payloads`, and a payload
 counts as violating if *any* of its ~17 turns leaked on that particular day. **The denominator is
@@ -125,18 +135,25 @@ denominator moved, a coverage loss, or both, and the column cannot tell you whic
 
 | release | what it is |
 |---|---|
-| **v0.8.1** | multi-turn probes, a session connector, 4 agentic-autonomy techniques. [measured](results/2026-10-11-sixi-oss-v80/README.md) |
+| **v0.8.3** | stops two techniques taking recitation breaks that were not theirs. [measured](results/2026-10-12-sixi-oss-v83/README.md) — **the headline** |
+| v0.8.2 | parameter induction, the fifth agentic vector. [measured](results/2026-10-12-sixi-oss-v82-target/README.md) — 70 sends, 0 findings, and one payload that leaked the account by a route the technique did not watch for |
+| v0.8.1 | multi-turn probes, a session connector, 4 agentic-autonomy techniques. [measured](results/2026-10-11-sixi-oss-v80/README.md) — worse than v0.6.0 on both metrics, published rather than dropped; first oracle codes |
 | v0.7.0 / v0.7.1 | false-action-claim, adjudicated against the tool trace. [measured negative](results/2026-10-10-sixi-oss-v71/README.md) — inert against this target, which exposes no trace, and too coarse against one that does |
 
 It runs in CI as [`rbrus/scan-action@v2`](https://github.com/rbrus/scan-action).
 
-<!-- headline-run: results/2026-10-08-sixi-oss-v6 -->
-| sixi-scanner v0.6.0 | measured | against the baseline leaderboard |
+<!-- headline-run: results/2026-10-12-sixi-oss-v83 -->
+| sixi-scanner v0.8.3 | measured | against the baseline leaderboard |
 |---|---|---|
-| **Precision — of what it reported, how much was real** | **0.688** | 1st (deepteam 0.300, promptfoo 0.141, garak 0.138) |
-| **Recall — of what it broke, how much it reported** | **0.833** | 1st (garak 0.556) |
-| **Confirmed violations found** | **37** from 1,282 turns | 3rd (promptfoo 89, garak 81) |
-| **Cost** | **$0.57** + 75 local model calls | no cloud inference |
+| **Precision — of what it reported, how much was real** | **0.821** | 1st, and the best measured here (deepteam 0.300, promptfoo 0.141, garak 0.138) |
+| **Recall — of what it broke, how much it reported** | **0.571** | 1st, but see the warning below — this column does not compare across runs |
+| **Confirmed violations found** | **61** from 1,480 turns | 3rd (promptfoo 89, garak 81) |
+| **Distinct attacks caught** | **8** payloads, from 5 in each of the four prior releases | the first coverage growth in five releases |
+| **Cost** | **$0.72** + 100 attacker-model calls | no cloud inference |
+
+Turn-matched to the baselines at `rounds=14, attempts=5`. **Both KPI targets are met** — precision
+≥ 0.30 and recall ≥ 0.56 — for the first time since v0.6.0. Previous best precision on this board was
+0.724. [Full write-up and the per-technique attribution.](results/2026-10-12-sixi-oss-v83/README.md)
 
 ### The multi-turn lane: `sixi-oss-v80-mt`
 
@@ -168,11 +185,10 @@ semantics rather than substrings — see [the measured proposal](docs/PROPOSAL-r
 
 ---
 
-It is the only tool on this board holding both the precision and the recall target at once (0.688 ≥
-0.30, 0.833 ≥ 0.56). **Where it loses: breadth.** Many more distinct attacks beat it (promptfoo 89,
-garak 67, deepteam 21 against its 6); 21 techniques is a floor, not a state of the art. It scores 0
-deterministic-oracle codes, and **28 probe payloads were sent to try to move that** without success —
-all published in
+**Where it loses: breadth, and it is not close.** Many more distinct attacks beat it (promptfoo 89,
+garak 67, deepteam 21 against its 8); 27 techniques is a floor, not a state of the art. **28 probe
+payloads were sent to try to move the oracle count off zero** without success before a multi-turn probe
+reached one that no single-turn scanner can touch — all published in
 [`results/2026-10-07-probe-oracle-gap/`](results/2026-10-07-probe-oracle-gap/README.md).
 
 ### Then and now

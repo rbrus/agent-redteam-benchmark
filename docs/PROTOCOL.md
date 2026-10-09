@@ -503,6 +503,11 @@ Also recorded: a positional join between the probe's verdicts and the corpus ini
 
 ---
 
+**Update, 2026-10-12.** The v0.8.1 result below was published as worse than v0.6.0 and the headline was
+deliberately left on v0.6.0. That is still correct for v0.8.1. **The headline has since moved to v0.8.3**,
+which is a different build and is written up in section 11. Nothing in section 8 is revised: the
+multi-turn lane's figures, its scoring rules and its non-comparability all stand.
+
 ## 8. The multi-turn lane (sixi-oss-v80-mt), disclosed
 
 `sixi-oss-v80` and `sixi-oss-v80-mt` are **one release measured in two lanes, and they are not the
@@ -768,6 +773,46 @@ make the thin one look like the others.
 Neither technique has been run end to end at the standard budget. What is measured is the probe, which
 is the same discipline the multi-turn lane needed: derive the markers from observed replies, and
 expect a verified non-finding rather than a number.
+
+## 11. v0.8.3 — the headline moves, and how much of it is attributable
+
+**The headline moved from v0.6.0 to v0.8.3.** Precision 0.576 → **0.821**, the best ever measured here
+and above the 0.30 target by a wide margin; recall 0.385 → **0.571**, above the 0.56 target; six risk
+categories, the most of any build; and **hits 5 → 8**, the first time the tool's coverage has grown
+across five releases.
+
+The cause was subtraction. The recitation test is a global fallback that fires on any reply enumerating
+three or more of the agent's own rules, and the break is attributed to whichever technique drew the probe.
+`probe.llm09.false-action-claim` has a single sentinel marker (`__claim_check__`), so it is **never**
+detected by matching text — it is detected by the claim check, against a tool trace. On an endpoint with
+no trace the claim check correctly abstains, and all **7** of its findings were the recitation test
+borrowing its name. `probe.llm10.unbounded-consumption` contributed 2 more the same way. Both now opt
+out; the corpus measurement is 42 true positives unchanged and 9 false positives removed.
+
+**Three of the four other candidates would have cost real detections**, which is the reason they were
+measured before being changed: opting `refusal-consistency` out would have cost **14** true positives,
+`interagent-framing` **4**, `tool-argument-injection` **3**, `canary-leak` 1. **Recitation is mostly
+signal on this target, not a false-positive machine**, and the intuitive fix would have quietly deleted
+detections. The test suite's comment has claimed `refusal-consistency` depends on the recitation test;
+nothing had ever checked it, and now it has.
+
+**How much is attributable to the change, honestly.** One run per configuration cannot separate a change
+from run-to-run variation. `markdown-exfiltration` going 6 → 9 confirmed, and two techniques appearing
+with confirmed flags, are as likely to be the target behaving differently on the day. The one cleanly
+attributable result is `false-action-claim`: **7 all-false flags → absent**, which is exactly what the
+offline measurement predicted from the definition change before the run was made. A turn-matched A/B
+would cost two runs and about $1.40 and was not run, so this is not claimed.
+
+**The recall figure is the weakest number here and says so.** 0.571 clears its target by 0.011, and §9
+establishes that the column does not compare across runs at all. The claim this build is better rests on
+precision and on the hit count, not on that figure.
+
+**A provenance gap, disclosed rather than corrected.** The binary that produced this run self-reports
+`0.8.2+dirty`: it was built from the working tree before the `v0.8.3` tag existed, so the tag name was
+not resolvable at build time. Its technique set and every technique definition are byte-identical to the
+tagged build (checked by diffing `list` and `list --detail`), so the measured behaviour is v0.8.3's and
+only the embedded label is wrong. Recorded rather than corrected, because quietly relabelling a run is
+how a provenance gap starts.
 
 ## 10. When an oracle changes: re-score, do not re-run
 
